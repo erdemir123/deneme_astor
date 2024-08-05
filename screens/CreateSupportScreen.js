@@ -8,12 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Dropdown } from "react-native-element-dropdown";
-import { Formik } from "formik";
+import { Formik, useFormik } from "formik";
 import SectionedMultiSelect from "react-native-sectioned-multi-select";
 import { MaterialIcons as Icon } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 
 import useTicketCalls from "../hooks/useTicketCalls";
 import {
@@ -25,9 +27,9 @@ import { useSelector } from "react-redux";
 import Accordion from "../components/accordion/Accordion";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddDocument from "../components/AddDocument";
+import { Image } from "react-native";
 
 export default function CreateSupportScreen({ route, navigation }) {
-  //console.log(route.params?.itemId, "params");
   const [category, setCategory] = useState([]);
   const [newTicket, setNewTicket] = useState(false);
   const [ticket, setTicket] = useState(false);
@@ -35,21 +37,62 @@ export default function CreateSupportScreen({ route, navigation }) {
   const [location, setLocation] = useState([]);
   const [myDevices, setMyDevices] = useState([]);
   const [allGroup, setAllGroup] = useState([]);
+  const [myDevicesDefault, setMyDevicesDefault] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedInfo, setSelectedInfo] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [formValues, setFormValues] = useState({
+    type: "",
+    itilcategories_id: "",
+    locations_id: "",
+    devices_id: "",
+    file: "",
+    viewer: [],
+    name: "",
+    content: "",
+    document: null,
+  });
+  
+  
 
-  const [addPreferDocument, setAddPreferDocument] = useState(false);
+  // useEffect(() => {
+  //   if (route.params?.data) {
+  //     const jsonString = route.params.data;
+  //     console.log(jsonString,"screens/SupportScreen.js")
+
+  //     const parsedData = JSON.parse(jsonString);
+  //     console.log(parsedData.seri_no,parsedData.konum,parsedData.kategori, "sar");
+  //     console.log(myDevices)
+  //     const devices_ids = myDevices?.find(
+  //       (item) => item.serial == parsedData.seri_no.toString()
+  //     );
+  //     console.log(devices_ids)
+  //     if (devices_ids) {
+  //       const deviceValue = devices_ids.value.toString();
+  //       console.log(deviceValue, "ids");
+  //     } else {
+  //       console.log("Device not found.");
+  //     }
+
+  //     // Veriyi formValues ile güncelle
+  //     setFormValues((prevValues) => ({
+  //       ...prevValues,
+  //       locations_id: parsedData?.konum.toString() || "",
+  //       devices_id: devices_ids?.value.toString() || "",
+  //       itilcategories_id: parsedData?.kategori.toString() || "",
+  //       name:`${devices_ids?.label} ${devices_ids?.serial}da  problem var`
+  //     }));
+  //   }
+  // }, [myDevices]);
+
   const [loading, setLoading] = useState(false);
   const user_id = useSelector(selectCurrentUser_id);
   const user = useSelector(selectCurrentUser);
 
   const [isModalVisible, setModalVisible] = useState(false);
 
-  const {
-    createTickets,
-
-    addDocument,
-  } = useTicketCalls();
+  const { createTickets, uploadDocument, addPluginTicket } = useTicketCalls();
 
   const loadMoreItems = async () => {
     console.log("You have reached the end of the list");
@@ -71,10 +114,13 @@ export default function CreateSupportScreen({ route, navigation }) {
         const myDevice = await AsyncStorage.getItem("myDevices");
         if (myDevice !== null) {
           const parsedDevices = JSON.parse(myDevice);
-          setMyDevices(parsedDevices);
+          const modifiedData = parsedDevices.map((item) => {
+            //const newLabel = item.label.split(" - ")[0]; // "-" karakterine göre böl ve ilk kısmı al
+            return { ...item, name: item.label }; // Yeni label ile nesneyi dön
+          });
+          setMyDevices(modifiedData);
         }
 
-        //console.log("myDevices", myDevice, "myDevices");
         const locationAll = locationString ? JSON.parse(locationString) : [];
         const user = usersString ? JSON.parse(usersString) : [];
         const group = groupString ? JSON.parse(groupString) : [];
@@ -104,8 +150,70 @@ export default function CreateSupportScreen({ route, navigation }) {
     setNewTicket(route.params?.itemId);
     fetchTickets();
   }, []);
+  // const handleSubmit = async (values) => {
+  //   validateValues(values);
+  //   setLoading(true);
+
+  //   const usersIds = selectedInfo
+  //     .filter((info) => info.parentName === "User List")
+  //     .map((info) => +info.id.split("-")[1]);
+
+  //   const groupsIds = selectedInfo
+  //     .filter((info) => info.parentName === "Group List")
+  //     .map((info) => +info.id.split("-")[1]);
+
+  //   try {
+  //     const { file, ...otherValues } = values;
+
+  //     const data = await createTickets({
+  //       input: {
+  //         ...otherValues,
+  //         users_id_recipient: user_id,
+  //         _users_id_requester: user_id,
+  //         _groups_id_assign: [],
+  //         _users_id_assign: [],
+  //         _groups_id_requester: [],
+  //         _groups_id_observer: groupsIds,
+  //         _users_id_observer: usersIds,
+  //       },
+  //     });
+  //     console.log("object ticket", data);
+  //     console.log(selectedFiles)
+  //     if (data?.id && selectedFiles[0]) {
+  //      // console.log(" buraua girdi", data.id, selectedFiles);
+  //       // const documentRes = await uploadDocument(
+  //       //   selectedFiles[0][0],
+  //       //   data?.id,
+  //       //   user_id,
+  //       //   "Ticket"
+  //       // );
+  //       const uploadPromises = selectedFiles[0]?.map((fileUri) =>
+  //         uploadDocument(fileUri, data.id, user_id, "Ticket")
+
+  //         );
+  //       const documentRes = await Promise.all(uploadPromises);
+
+  //     }
+
+  //   } catch (error) {
+  //     console.error("Error creating ticket:", error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const handleSubmit = async (values) => {
-    //console.log(values,"values")
+    // Eksik alanlar olup olmadığını kontrol et
+    console.log(values,"values")
+    const errors = validateValues(values);
+
+    // Eğer eksik alanlar varsa, işlemi durdur
+    if (errors.length > 0) {
+      alert(`Şu alanlar boş olamaz: ${errors.join(", ")}`);
+      return; // Burada fonksiyonun devamını durdurur
+    }
+
+    setLoading(true);
+
     const usersIds = selectedInfo
       .filter((info) => info.parentName === "User List")
       .map((info) => +info.id.split("-")[1]);
@@ -114,19 +222,12 @@ export default function CreateSupportScreen({ route, navigation }) {
       .filter((info) => info.parentName === "Group List")
       .map((info) => +info.id.split("-")[1]);
 
-    // console.log(user_id,groupsIds,usersIds);
-    // console.log({
-    //   ...values,
-    //   users_id_recipient: user_id,
-    //   _users_id_requester: user_id,
-    //   _groups_id_assign: [],
-    //   _groups_id_observer: groupsIds,
-    //   _users_id_observer: usersIds,
-    // });
     try {
+      const { file, ...otherValues } = values;
+
       const data = await createTickets({
         input: {
-          ...values,
+          ...otherValues,
           users_id_recipient: user_id,
           _users_id_requester: user_id,
           _groups_id_assign: [],
@@ -136,25 +237,60 @@ export default function CreateSupportScreen({ route, navigation }) {
           _users_id_observer: usersIds,
         },
       });
-      if (data.id) {
-        setModalVisible(true);
-        console.log(data.id);
-        setAddPreferDocument(true);
-        setTicket(data.id);
-        //navigation.navigate("Home")
+      if (data?.id) {
+        const machine = {
+          input: myDevicesDefault.map((item) => ({
+            itemtype: "PluginGenericobjectMakine",
+            items_id: parseInt(item), // item değeri string olduğu için parseInt ile sayıya çeviriyoruz
+            tickets_id: data.id,
+          })),
+        };
+        console.log(machine, "machine");
+        const addPluginTicketRes = await addPluginTicket(machine);
+        console.log(addPluginTicketRes);
+        console.log(addPluginTicketRes);
       }
-      console.log("bu ne ", data.message.includes("Item successfully added:"));
+      if (data?.id && selectedFiles[0]) {
+        const uploadPromises = selectedFiles[0]?.map((fileUri) =>
+          uploadDocument(fileUri, data.id, user_id, "Ticket")
+        );
+        const documentRes = await Promise.all(uploadPromises);
+      }
     } catch (error) {
       console.error("Error creating ticket:", error);
+    } finally {
+      setLoading(false);
+      navigation.navigate("Home");
     }
   };
+
+  // validateValues fonksiyonunu şu şekilde güncelleyin:
+  const validateValues = (values) => {
+    const errors = [];
+
+    const fieldsToCheck = [
+      { key: "content", label: "İçerik" },
+      { key: "name", label: "Başlık" },
+      { key: "locations_id", label: "Konum" },
+      { key: "itilcategories_id", label: "Kategori" },
+    ];
+
+    fieldsToCheck.forEach(({ key, label }) => {
+      if (!values[key] || values[key].trim() === "") {
+        errors.push(label);
+      }
+    });
+
+    return errors;
+  };
+
   const allUser = [
     {
       id: "user-list",
       name: "User List",
       children: viewer.map((item) => ({
         ...item,
-        id: `user-${item.id}`, // `user-` ön eki ekleyerek benzersiz yapıyoruz
+        id: `user-${item.id}`,
       })),
     },
   ];
@@ -186,31 +322,82 @@ export default function CreateSupportScreen({ route, navigation }) {
           itemName = child.name; // Seçilen çocuğun adını al
         }
       });
-      return { id: selectedItemId,name:itemName, parentName }; // ID yerine itemName döndür
+      return { id: selectedItemId, name: itemName, parentName }; // ID yerine itemName döndür
     });
     setSelectedInfo(selectedInfo);
   };
+  const handleImagePick = async (setFieldValue) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true, // Eğer bu özellik desteklenmiyorsa bir alternatif kullanmanız gerekebilir
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        console.log(result, "resulr");
+        const uris = result.assets.map((asset) => asset.uri);
+        setSelectedFiles([...selectedFiles, result.assets]);
+
+        setSelectedImage(uris);
+        setFieldValue("file", uris);
+      }
+    } catch (err) {
+      console.error("Error picking images:", err);
+    }
+  };
+  useEffect(() => {
+    if (route.params?.data) {
+      setLoading(true)
+      const jsonString = route.params.data;
+      const parsedData = JSON.parse(jsonString);
+      const devices_ids = myDevices?.find(
+        (item) => item.serial === parsedData.seri_no.toString()
+      );
+      console.log(parsedData)
+      console.log("object", devices_ids?.value.toString(),parsedData?.seri_no.toString())
+      const newDeviceValue = devices_ids?.value.toString();
+      if (!myDevicesDefault.includes(newDeviceValue)) {
+        setMyDevicesDefault([...myDevicesDefault, newDeviceValue]);
+      }
+
+
+      setFormValues({
+        type: "",
+        itilcategories_id:parsedData.kategori.toString(),
+        locations_id: parsedData?.konum.toString() || "",
+        devices_id: "",
+        file: "",
+        viewer: [],
+        name: `${devices_ids?.label} (${devices_ids?.serial})da  problem var`,
+        content: "",
+        document: null,
+      })
+    }
+    setLoading(false)
+    
+  }, [myDevices]);
+console.log(myDevicesDefault,myDevices)
+  if (loading) {
+    return (
+      <ActivityIndicator
+        size={"large"}
+        color="red"
+        style={styles.loader}
+        animating={true}
+      />
+    );
+  }
   return (
     <View className="flex-1">
       {newTicket ? (
         <Accordion id={route.params?.itemId} />
       ) : (
         <Formik
-          initialValues={{
-            type: "",
-            itilcategories_id: "",
-            locations_id: "",
-            devices_id: "",
-            
-            //urgency: "",
-            viewer: [],
-
-            name: "",
-            content: "",
-            document: null,
-          }}
-          //validationSchema={validationSchema}
-          onSubmit={handleSubmit}
+        initialValues={formValues} // formik initialValues'i kullan
+        enableReinitialize={true} // formik enableReinitialize'i kullan
+        // validationSchema={validationSchema}
+        onSubmit={handleSubmit} 
         >
           {({
             handleChange,
@@ -265,9 +452,6 @@ export default function CreateSupportScreen({ route, navigation }) {
                       setFieldValue("itilcategories_id", item.value)
                     }
                   />
-                  {errors.category && touched.category && (
-                    <Text style={styles.errorText}>{errors.category}</Text>
-                  )}
 
                   <Dropdown
                     style={styles.dropdown}
@@ -291,26 +475,67 @@ export default function CreateSupportScreen({ route, navigation }) {
                   {errors.locations_id && touched.locations_id && (
                     <Text style={styles.errorText}>{errors.locations_id}</Text>
                   )}
-                  <Dropdown
-                    style={styles.dropdown}
-                    className="mt-3 w-full"
-                    placeholderStyle={styles.placeholderStyle}
-                    selectedTextStyle={styles.selectedTextStyle}
-                    inputSearchStyle={styles.inputSearchStyle}
-                    iconStyle={styles.iconStyle}
-                    data={myDevices}
-                    maxHeight={300}
-                    labelField="label"
-                    valueField="value"
-                    search
-                    searchPlaceholder="Cihazlar..."
-                    placeholder="Cihazlar"
-                    value={values.devices_id}
-                    onChange={(item) => setFieldValue("devices_id", item.value)}
+                  <SectionedMultiSelect
+                    items={myDevices} // myDevices, id ve label içermeli
+                    IconRenderer={Icon}
+                    uniqueKey="value" // Veya id, emin olun ki benzersiz
+                    subKey="children"
+                    selectedItems={myDevicesDefault}
+                    selectText="İlişkilendirilmiş Cihazlar..."
+                    styles={{
+                      selectToggle: styles.selectToggle,
+                      selectToggleText: styles.selectToggleText,
+                      chipContainer: styles.chipContainer,
+                      chipText: styles.chipText,
+                      itemText: styles.itemText,
+                      subItemText: styles.subItemText,
+                      selectedItemText: styles.selectedItemText,
+                      selectedSubItemText: styles.selectedSubItemText,
+                      confirmText: styles.confirmText,
+                      searchBar: styles.searchBar,
+                      button: styles.button,
+                      buttonText: styles.buttonText,
+                    }}
+                    onSelectedItemsChange={(selectedItems) => {
+                      setMyDevicesDefault((prev) => {
+                        const prevSet = new Set(prev);
+                        const selectedSet = new Set(selectedItems);
+
+                        selectedSet.forEach((item) => prevSet.add(item));
+
+                        prevSet.forEach((item) => {
+                          if (!selectedSet.has(item)) {
+                            prevSet.delete(item);
+                          }
+                        });
+
+                        return Array.from(prevSet);
+                      });
+                    }}
                   />
-                  {errors.devices_id && touched.devices_id && (
-                    <Text style={styles.errorText}>{errors.devices_id}</Text>
-                  )}
+                  {/* <Dropdown
+                  style={styles.dropdown}
+                  className="mt-3 w-full"
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  inputSearchStyle={styles.inputSearchStyle}
+                  iconStyle={styles.iconStyle}
+                  data={myDevices}
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  search
+                  searchPlaceholder="Cihazlar..."
+                  placeholder="Cihazlar"
+                  value={values.devices_id}
+                  onChange={(item) => {
+                    setFieldValue("devices_id", item.value);
+                    setSelectedDevice(item.label);
+                  }}
+                />
+                {errors.devices_id && touched.devices_id && (
+                  <Text style={styles.errorText}>{errors.devices_id}</Text>
+                )} */}
 
                   {/* <SectionedMultiSelect
                     items={viewer}
@@ -349,7 +574,7 @@ export default function CreateSupportScreen({ route, navigation }) {
                     IconRenderer={Icon}
                     uniqueKey="id"
                     subKey="children"
-                    selectText="Select items..."
+                    selectText="Gözlemci Ekle..."
                     showDropDowns={true}
                     readOnlyHeadings={true}
                     showChips={false}
@@ -367,7 +592,9 @@ export default function CreateSupportScreen({ route, navigation }) {
                       button: styles.button,
                       buttonText: styles.buttonText,
                     }}
-                    onSelectedItemsChange={(selectedItems)=>onSelectedItemsChange(selectedItems)}
+                    onSelectedItemsChange={(selectedItems) =>
+                      onSelectedItemsChange(selectedItems)
+                    }
                     selectedItems={selectedItems}
                     onEndReached={loadMoreItems}
                     onEndReachedThreshold={0.1}
@@ -397,8 +624,10 @@ export default function CreateSupportScreen({ route, navigation }) {
                   )}
                   <View className="w-full my-4 relative">
                     <TextInput
+                      multiline
                       placeholder="Başlık"
-                      className={`w-full h-12 border-[1px] border-red-500 p-2 rounded-[8px]  placeholder:text-red-500 placeholder:text-title-medium ${
+                      resize={true}
+                      className={`w-full h-24 border-[1px] border-red-500 p-2 rounded-[8px]  placeholder:text-red-500 placeholder:text-title-medium ${
                         errors.name && touched.name
                           ? "border-paradise "
                           : "border-[1px] border-paradise"
@@ -434,13 +663,42 @@ export default function CreateSupportScreen({ route, navigation }) {
                       </Text>
                     )}
                   </View>
-                  {/* <View style={{ marginVertical: 10 }}>
-                      <Button
-                        title="Select Document"
-                        onPress={() => selectDoc(setFieldValue)}
-                      />
-                      {values.document && <Text>{values.document.name}</Text>}
-                    </View> */}
+                  <View className="flex flex-row w-full mb-2 items-center justify-center ">
+                    <TouchableOpacity
+                      title=""
+                      onPress={() => handleImagePick(setFieldValue)}
+                      className=" bg-red-500 w-36 ml-2 justify-center items-center flex rounded-md my-2 h-12 "
+                    >
+                      <Text className="text-white  font-semibold  text-center">
+                        Resim Yükle
+                      </Text>
+                    </TouchableOpacity>
+                    {selectedImage && (
+                      <View className="flex flex-row pl-2">
+                        <View className="relative">
+                          <Image
+                            source={{ uri: selectedImage[0] }}
+                            style={{ width: 48, height: 48 }}
+                            className="rounded-md"
+                          />
+                          <Text className="absolute bg-red-500 px-2 py-1 -top-2 text-white font-semibold -right-1 ">
+                            x{selectedImage.length}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setFieldValue("file", null);
+                            setSelectedImage(null);
+                          }}
+                          className="bg-red-500 w-36 ml-2 justify-center items-center flex rounded-md"
+                        >
+                          <Text className="text-white  font-semibold  text-center">
+                            seçimi kaldır
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
                   <TouchableOpacity
                     onPress={handleSubmit}
                     className="h-12 text-white rounded-[4px] justify-center items-center bg-red-500 w-full"
@@ -567,5 +825,10 @@ const styles = StyleSheet.create({
   },
   multiIcon: {
     color: "red",
+  },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

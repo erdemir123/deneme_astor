@@ -17,6 +17,7 @@ import CustomHeaderRight from "../components/CustomRightHeader";
 import SupportScreen from "../screens/SupportScreen";
 import FormsScreen from "../screens/FormsScreen";
 import CreateSupportScreen from "../screens/CreateSupportScreen";
+import FormScreen from "../screens/FormScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -27,19 +28,20 @@ export default function AppNavigator() {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      const data = await AsyncStorage.getItem("userData");
       try {
-        const data = await AsyncStorage.getItem("userData");
 
         console.log("data async", data);
         if (data) {
-          const userData = JSON.parse(data); // JSON stringini JavaScript nesnesine dönüştür
-
+          const userData = JSON.parse(data); 
+  
           dispatch(
             setCredentials({
               user: userData.user,
               token: userData.token,
               profile: userData.profile,
-              user_id: userData.user_id, // user_id eklenmiş
+              user_id: userData.user_id,
+              group:userData.group
             })
           );
 
@@ -49,7 +51,7 @@ export default function AppNavigator() {
           navigation.navigate("Login");
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching user datas:", error);
         navigation.navigate("Login");
       }
     };
@@ -74,6 +76,7 @@ export default function AppNavigator() {
             headerTitleStyle: { color: "red" },
             headerRight: () => <CustomHeaderRight />,
             headerLeft: null,
+            headerBackVisible: false, 
           }}
         />
         <Stack.Screen
@@ -100,7 +103,7 @@ export default function AppNavigator() {
           name="Support"
           component={SupportScreen}
           options={{
-            title: "Destek Kaydı",
+            title: "Destek Kayıtları",
             headerTitleStyle: { color: "red" },
             headerRight: () => <CustomHeaderRight />,
             headerLeft: null,
@@ -110,7 +113,17 @@ export default function AppNavigator() {
           name="Forms"
           component={FormsScreen}
           options={{
-            title: "Destek Kaydı",
+            title: "Formlar",
+            headerTitleStyle: { color: "red" },
+            headerRight: () => <CustomHeaderRight />,
+            headerLeft: null,
+          }}
+        />
+        <Stack.Screen
+          name="Form"
+          component={FormScreen}
+          options={{
+            title: "Form",
             headerTitleStyle: { color: "red" },
             headerRight: () => <CustomHeaderRight />,
             headerLeft: null,
@@ -120,7 +133,7 @@ export default function AppNavigator() {
           name="CreateSupport"
           component={CreateSupportScreen}
           options={{
-            title: "Destek Kaydı Aç",
+            title: "Destek Kaydı",
             headerTitleStyle: { color: "red" },
             headerRight: () => <CustomHeaderRight />,
             headerLeft: null,

@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   TextInput,
-  Button,
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
@@ -16,6 +15,7 @@ import {
 } from "react-native";
 import { decode } from "html-entities";
 import AccordionItem from "./AccordionItem";
+import * as ImagePicker from "expo-image-picker";
 import DatePicker from "../DatePicker";
 import { Formik } from "formik";
 import { Dropdown } from "react-native-element-dropdown";
@@ -32,10 +32,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import AddDocument from "../AddDocument";
-
 const Accordion = ({ id }) => {
   const navigation = useNavigation();
+  const user_id = useSelector(selectCurrentUser_id);
+  const { name } = useSelector(selectProfile);
   const [openIndex, setOpenIndex] = useState(0); // Default to 0 to open the first item
   const [category, setCategory] = useState([]);
   const [allGroup, setAllGroup] = useState([]);
@@ -46,6 +46,7 @@ const Accordion = ({ id }) => {
   const [location, setLocation] = useState([]);
   const [ticket, setTicket] = useState();
   const [document, setDocument] = useState([]);
+  const [isCreator, setIsCreator] = useState(false);
   const [followItems, setFollowItems] = useState([]);
   const [followDocs, setFollowDocs] = useState([]);
   const [baseUrl, setBaseUrl] = useState({ baseUrl: "", token: "" });
@@ -53,16 +54,29 @@ const Accordion = ({ id }) => {
   const [isModalImage, setModalImage] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageFollow, setImageFollow] = useState();
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [updateGroup, setUpdateGroup] = useState();
+  const [ticketUser, setTicketUser] = useState([]);
+  const [ticketGroup, setTicketGroup] = useState([]);
   const [selectedInfo, setSelectedInfo] = useState([]);
   const [observerDefault, setObserverDefault] = useState([]);
+  const [requesterDefault, setRequesterDefault] = useState([]);
+  const [assignDefault, setAssignDefault] = useState([]);
+  const [file, setFile] = useState();
+  const [selectImagePicker, setSelectImagePicker] = useState();
+  const [isLoadingFollowUp, setiIsLoadingFollowUp] = useState(false);
+  const [followUpType, setFollowUpType] = useState(1);
+  const [missionModal, setMissionModal] = useState(false);
+  const [myDevices, setMyDevices] = useState([]);
+  const [myDevicesDefault, setMyDevicesDefault] = useState([]);
+  const [defaultDevices, setDefaultDevice] = useState([]);
+  const [followSolutionArr, setFollowSolutionArr] = useState([]);
 
   const [initialValues, setInitialValues] = useState({
     type: "",
     itilcategories_id: "",
     locations_id: "",
-    _users_id_requester: [],
-    _users_id_assign: [],
+    // _users_id_requester: [],
+    // _users_id_assign: [],
     date_creation: new Date(),
     status: "",
     requesttypes_id: "",
@@ -73,16 +87,23 @@ const Accordion = ({ id }) => {
   const [inputValue, setInputValue] = useState("");
 
   const [loading, setLoading] = useState(true); // Loading state
-  const user_id = useSelector(selectCurrentUser_id);
-  const { name } = useSelector(selectProfile);
 
   const {
     getTicketById,
     getTicketInfo,
     updateTickets,
+    deleteTicketUser,
+    deleteTicketGroup,
     getStoredData,
     addITILFollowup,
     deleteTicket,
+    uploadDocument,
+    uploadDocumentSingle,
+    addITILFollowupSolution,
+    getTicketInfoUser,
+    getPluginTicket,
+    addPluginTicket,
+    deletePlugin,
   } = useTicketCalls();
 
   const handlePress = (index) => {
@@ -110,142 +131,225 @@ const Accordion = ({ id }) => {
     { label: "Other", value: "6" },
     { label: "formCreator", value: "7" },
   ];
+  const checkCondition = (name, isCreator) => {
+    // Eğer kullanıcı adı "Teknisyen" ise
+    if (name === "Teknisyen") {
+      return true;
+    }
 
-  useEffect(() => {
-    const fetchTickets = async () => {
-      const { storedBaseUrl, token } = await getStoredData();
-      try {
-        //ticket
-        const ticketById = await getTicketById(id);
-        setTicket(ticketById);
-        //category
-        const ITILCategoryString = await AsyncStorage.getItem("ITILCategory");
-        const ITILCategoryAll = ITILCategoryString
-          ? JSON.parse(ITILCategoryString)
-          : [];
+    // Eğer kullanıcı adı "Self-Service" ve kayıt açan kişi kendisi ise
+    if (name === "Self-Service" && isCreator) {
+      return true;
+    }
 
-        setCategory(
-          ITILCategoryAll.map((item) => ({
-            label: item.completename,
-            value: item.id.toString(),
-          }))
-        );
-        //user
-        const usersString = await AsyncStorage.getItem("User");
-        const users = usersString ? JSON.parse(usersString) : [];
+    // Diğer tüm durumlarda false döner
+    return false;
+  };
+  const fetchTickets = async () => {
+    console.log("object fetch çalıştı")
+    const { storedBaseUrl, token } = await getStoredData();
+    try {
+      const ticketById = await getTicketById(id);
+      console.log(" ticketByIs", ticketById.users_id_recipient, user_id);
+      setIsCreator(
+        ticketById.users_id_recipient.toString() === user_id.toString()
+      );
+      setTicket(ticketById);
+      const ITILCategoryString = await AsyncStorage.getItem("ITILCategory");
+      const ITILCategoryAll = ITILCategoryString
+        ? JSON.parse(ITILCategoryString)
+        : [];
 
-        setViewer(users);
-        //group
-        const groupString = await AsyncStorage.getItem("Group");
-        const group = groupString ? JSON.parse(groupString) : [];
-        setAllGroup(group);
-        //location
-        const locationString = await AsyncStorage.getItem("Location");
-        const locationAll = locationString ? JSON.parse(locationString) : [];
-        setLocation(
-          locationAll.map((item) => ({
-            label: item.completename,
-            value: item.id.toString(),
-          }))
-        );
-        //requester
+      setCategory(
+        ITILCategoryAll.map((item) => ({
+          label: item.completename,
+          value: item.id.toString(),
+        }))
+      );
+      //user
+      const usersString = await AsyncStorage.getItem("User");
+      const users = usersString ? JSON.parse(usersString) : [];
 
-        const ticketUserLink = ticketById?.links.filter(
-          (link) => link.rel == "Ticket_User"
-        );
-        const ticketGroupLink = ticketById?.links.filter(
-          (link) => link.rel == "Group_Ticket"
-        );
-        const data = await getTicketInfo(ticketUserLink[0].href);
-        const formattedUserData = data.map((item) => `user-${item.users_id}`);
+      setViewer(users);
+      //group
+      const groupString = await AsyncStorage.getItem("Group");
+      const group = groupString ? JSON.parse(groupString) : [];
+      setAllGroup(group);
+      //location
+      const locationString = await AsyncStorage.getItem("Location");
+      const locationAll = locationString ? JSON.parse(locationString) : [];
+      setLocation(
+        locationAll.map((item) => ({
+          label: item.completename,
+          value: item.id.toString(),
+        }))
+      );
+      //Devices
+      const myDevice = await AsyncStorage.getItem("myDevices");
+      const defaultDevice = await getPluginTicket(ticketById?.id);
 
-        const dataGroup = await getTicketInfo(ticketGroupLink[0].href);
-        const formattedGroupData = dataGroup.map(
-          (item) => `group-${item.groups_id}`
-        );
-
-        setObserverDefault((prev) => {
-          const newItems = [
-            ...prev,
-            ...formattedUserData,
-            ...formattedGroupData,
-          ];
-          const uniqueItems = Array.from(new Set(newItems));
-          return uniqueItems;
+      if (myDevice !== null) {
+        const parsedDevices = JSON.parse(myDevice);
+        const modifiedData = parsedDevices.map((item) => {
+          //const newLabel = item.label.split(" - ")[0]; // "-" karakterine göre böl ve ilk kısmı al
+          return { ...item, name: item.label }; // Yeni label ile nesneyi dön
         });
-        const filteredIdViewer = data
-          .filter((item) => item.type === 1)
-          .map((item) => item.users_id);
-        const filteredIdRequester = data
-          .filter((item) => item.type === 3)
-          .map((item) => item.users_id);
-        const filteredIdAssing = data
-          .filter((item) => item.type === 2)
-          .map((item) => item.users_id);
-
-        setSelectViewer(filteredIdViewer);
-        setSelectRequester(filteredIdRequester);
-        setSelectAssings(filteredIdAssing);
-
-        //Documnet
-        const documnetLink = ticketById?.links.filter(
-          (link) => link.rel == "Document_Item"
+        setMyDevices(modifiedData);
+        setMyDevicesDefault(
+          defaultDevice.map((item) => item.items_id.toString())
         );
-        const documentData = await getTicketInfo(documnetLink[0].href);
-        //console.log("document documnet", documentData);
-        const filteredIdDocumnet = documentData.map(
-          (item) => item.documents_id
-        );
-        console.log(filteredIdDocumnet);
-        setDocument(filteredIdDocumnet);
-
-        //followUp
-        const followLink = ticketById?.links.filter(
-          (link) => link.rel === "ITILFollowup"
-        );
-
-        // Fetch follow-up data from the link
-        const followUp = await getTicketInfo(followLink[0].href);
-
-        // Fetch responses for each follow-up item
-        const followUpResponses = await Promise.all(
-          followUp.map((item) =>
-            getTicketInfo(
-              `${storedBaseUrl}/ITILFollowup/${item.id}/Document_Item/`
-            )
-          )
-        );
-        //console.log("followUpResponses",followUpResponses)
-
-        const combinedFollowItems = followUp.map((item, index) => ({
-          ...item,
-          followdoc: followUpResponses[index] || [],
-        }));
-
-        // Set the combined follow items in state
-        setFollowItems(combinedFollowItems);
-
-        setBaseUrl({ baseUrl: storedBaseUrl, token: token });
-
-        setLoading(false); // Data fetched, set loading to false
-      } catch (error) {
-        console.log("eroor", error);
-        setLoading(false); // Even on error, set loading to false
+        setDefaultDevice(defaultDevice.map((item) => ({
+          id: item.id.toString(),
+          value: item.items_id.toString()
+        })));
+        
       }
-    };
+      //requester
+
+      const ticketUserLink = ticketById?.links.filter(
+        (link) => link.rel == "Ticket_User"
+      );
+      console.log(ticketUserLink, "ticketUserLink");
+      const ticketGroupLink = ticketById?.links.filter(
+        (link) => link.rel == "Group_Ticket"
+      );
+      const data = await getTicketInfo(ticketUserLink[0].href);
+      setTicketUser(data.map((item) => item.id));
+      const resultUser = {
+        input: data.map((item) => ({ id: item.users_id })),
+      };
+      const formattedUserObserver = data
+        .filter((item) => item.type === 3)
+        .map((item) => `user-${item.users_id}`);
+      const dataGroup = await getTicketInfo(ticketGroupLink[0].href);
+      //console.log("data", dataGroup);
+      setTicketGroup(dataGroup.map((item) => item.id));
+      const formattedGroupObserver = dataGroup
+        .filter((item) => item.type === 3)
+        .map((item) => `group-${item.groups_id}`);
+
+      const formattedUserRequester = data
+        .filter((item) => item.type === 1)
+        .map((item) => `user-${item.users_id}`);
+
+      const formattedGroupRequester = dataGroup
+        .filter((item) => item.type === 1)
+        .map((item) => `group-${item.groups_id}`);
+
+      const formattedUserAssign = data
+        .filter((item) => item.type === 2)
+        .map((item) => `user-${item.users_id}`);
+
+      const formattedGroupAssign = dataGroup
+        .filter((item) => item.type === 2)
+        .map((item) => `group-${item.groups_id}`);
+
+      setObserverDefault((prev) => {
+        const newItems = [
+          ...prev,
+          ...formattedUserObserver,
+          ...formattedGroupObserver,
+        ];
+        const uniqueItems = Array.from(new Set(newItems));
+        return uniqueItems;
+      });
+      setRequesterDefault((prev) => {
+        const newItems = [
+          ...prev,
+          ...formattedUserRequester,
+          ...formattedGroupRequester,
+        ];
+        const uniqueItems = Array.from(new Set(newItems));
+        return uniqueItems;
+      });
+      setAssignDefault((prev) => {
+        const newItems = [
+          ...prev,
+          ...formattedUserAssign,
+          ...formattedGroupAssign,
+        ];
+        const uniqueItems = Array.from(new Set(newItems));
+        return uniqueItems;
+      });
+
+      const filteredIdViewer = data
+        .filter((item) => item.type === 1)
+        .map((item) => item.users_id);
+      const filteredIdRequester = data
+        .filter((item) => item.type === 3)
+        .map((item) => item.users_id);
+      const filteredIdAssing = data
+        .filter((item) => item.type === 2)
+        .map((item) => item.users_id);
+
+      setSelectViewer(filteredIdViewer);
+      setSelectRequester(filteredIdRequester);
+      setSelectAssings(filteredIdAssing);
+
+      //Documnet
+      const documnetLink = ticketById?.links.filter(
+        (link) => link.rel == "Document_Item"
+      );
+      const documentData = await getTicketInfo(documnetLink[0].href);
+
+      const filteredIdDocumnet = documentData.map(
+        (item) => item.documents_id
+      );
+
+      setDocument(filteredIdDocumnet);
+
+      //followUp
+      const followLink = ticketById?.links.filter(
+        (link) => link.rel === "ITILFollowup"
+      );
+
+      const followUp = await getTicketInfo(followLink[0].href);
+      const followSolution = await getTicketInfoUser(
+        `${storedBaseUrl}/Ticket/${ticketById?.id}/ITILSolution`
+      );
+
+      //console.log("followSolution", followSolution, "followSolution");
+
+      // Fetch responses for each follow-up item
+      const followUpResponses = await Promise.all(
+        followUp.map((item) =>
+          getTicketInfo(
+            `${storedBaseUrl}/ITILFollowup/${item.id}/Document_Item/`
+          )
+        )
+      );
+      //console.log("followUpResponses",followUpResponses)
+
+      const combinedFollowItems = followUp.map((item, index) => ({
+        ...item,
+        followdoc: followUpResponses[index] || [],
+      }));
+
+      // Set the combined follow items in state
+      setFollowItems(combinedFollowItems);
+      setFollowSolutionArr(followSolution);
+
+      setBaseUrl({ baseUrl: storedBaseUrl, token: token });
+
+      setLoading(false); // Data fetched, set loading to false
+    } catch (error) {
+      console.log("eroor", error);
+      setLoading(false); // Even on error, set loading to false
+    }
+  };
+  useEffect(() => {
+   
 
     fetchTickets();
+    //checkCondition(name,isCreator)
   }, []);
+
   useEffect(() => {
-    console.log(" ticket tickert", selectAssing);
     if (ticket) {
       setInitialValues({
         type: String(ticket.type),
         itilcategories_id: ticket.itilcategories_id.toString(),
         locations_id: ticket.locations_id.toString(),
-        _users_id_requester: selectViewer,
-
-        _users_id_assign: selectAssing,
         date_creation: ticket.date_creation,
         status: ticket.status.toString(),
         requesttypes_id: ticket?.requesttypes_id.toString(),
@@ -253,7 +357,7 @@ const Accordion = ({ id }) => {
         content: stripHtmlTags(decode(ticket.content)),
       });
     }
-  }, [selectViewer, ticket, selectAssing, selectRequester]);
+  }, [ticket]);
 
   const openModal = (imageUri) => {
     setSelectedImage(imageUri);
@@ -269,21 +373,13 @@ const Accordion = ({ id }) => {
   };
   const getRequestTypeLabel = (requestTypeId) => {
     const viewerItem = viewer.find((item) => item.id === requestTypeId);
+
     return viewerItem ? viewerItem.name : "Unknown Viewer Name";
   };
   const handleAddClick = () => {
     setIsAdding(true);
   };
   const handleDelete = async () => {
-    console.log(
-      "object",
-      ticket.status,
-      typeof ticket.status,
-      ticket.id,
-      name,
-      typeof name
-    );
-
     if (ticket.status == 1 && name == "Self-Service") {
       const res = await deleteTicket({
         input: {
@@ -304,45 +400,88 @@ const Accordion = ({ id }) => {
     }
   };
 
-  const handleSendClick = async () => {
-    console.log("ali", ticket.id, user_id);
-    const res = await addITILFollowup({
-      input: {
-        itemtype: "Ticket",
-        items_id: ticket.id,
-        users_id_editor: user_id,
-        content: inputValue,
-        requesttypes_id: user_id,
-      },
-    });
-    setIsAdding(false);
-    setInputValue("");
-    setImageFollow(res?.id);
+  const createFollowupInput = (ticket, user_id, inputValue) => {
+    let input = {
+      itemtype: "Ticket",
+      items_id: ticket.id,
+      users_id_editor: user_id,
+      content: inputValue,
+      requesttypes_id: user_id,
+    };
 
-    const followLink = ticket?.links.filter(
-      (link) => link.rel == "ITILFollowup"
-    );
-    const followUp = await getTicketInfo(followLink[0].href);
+    if (followUpType === 2) {
+      input.status = 2;
+    }
 
-    // Fetch responses for each follow-up item
-    const followUpResponses = await Promise.all(
-      followUp.map((item) =>
-        getTicketInfo(
-          `http://212.253.8.154:23737/apirest.php/ITILFollowup/${item.id}/Document_Item/`
-        )
-      )
-    );
-    console.log("follow", res.id, "follow");
-    setModalImage(true);
-
-    const combinedFollowItems = followUp.map((item, index) => ({
-      ...item,
-      followdoc: followUpResponses[index] || [],
-    }));
-
-    // Set the combined follow items in state
-    setFollowItems(combinedFollowItems);
+    return input;
   };
+  const handleSendClick = async () => {
+    const { storedBaseUrl, token } = await getStoredData();
+    console.log(inputValue, "inputValue");
+    if (inputValue !== "") {
+      setiIsLoadingFollowUp(true);
+      let res;
+      const input = createFollowupInput(ticket, user_id, inputValue);
+      if (followUpType === 1) {
+        res = await addITILFollowup({
+          input,
+        });
+      } else {
+        res = await addITILFollowupSolution({
+          input,
+        });
+      }
+      console.log(res, "res");
+      setIsAdding(false);
+      setInputValue("");
+      setImageFollow(res?.id);
+      if (res?.id && file) {
+        console.log("object",file)
+        const documentRes = await uploadDocumentSingle(
+          file,
+          res?.id,
+          user_id,
+          "ITILFollowup"
+        );
+        console.log(documentRes,"documentREs")
+      } else {
+        console.log("object seçilmedi");
+      }
+      setFile(null);
+      setSelectImagePicker(null);
+
+      const followLink = ticket?.links.filter(
+        (link) => link.rel == "ITILFollowup"
+      );
+      const followUp = await getTicketInfo(followLink[0].href);
+      // Fetch responses for each follow-up item
+      const followUpResponses = await Promise.all(
+        followUp.map((item) =>
+          getTicketInfo(
+            `${storedBaseUrl}/ITILFollowup/${item.id}/Document_Item/`
+          )
+        )
+      );
+
+      const combinedFollowItems = followUp.map((item, index) => ({
+        ...item,
+        followdoc: followUpResponses[index] || [],
+      }));
+
+      const followSolution = await getTicketInfoUser(
+        `${storedBaseUrl}/Ticket/${ticket?.id}/ITILSolution`
+      );
+
+      setFollowItems(combinedFollowItems);
+      setFollowSolutionArr(followSolution)
+      setiIsLoadingFollowUp(false);
+      setMissionModal(false);
+     
+    } else {
+      alert("Takip Mesajı Boş olamaz");
+    }
+  };
+
 
   //group and viewer
   const allUser = [
@@ -352,7 +491,7 @@ const Accordion = ({ id }) => {
       children: viewer.map((item) => ({ ...item, id: `user-${item.id}` })), // user- ön eki ekleyerek benzersiz yapıyoruz
     },
   ];
-  
+
   const group = [
     {
       id: "group-list",
@@ -360,15 +499,32 @@ const Accordion = ({ id }) => {
       children: allGroup.map((item) => ({ ...item, id: `group-${item.id}` })), // group- ön eki ekleyerek benzersiz yapıyoruz
     },
   ];
-  
-  const combinedItems = [...allUser, ...group];
-  
 
-  
+  const combinedItems = [...allUser, ...group];
+
   const loadMoreItems = async () => {
     console.log("You have reached the end of the list");
   };
-  console.log(observerDefault);
+  //console.log(observerDefault);
+
+  const handleImagePick = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const uri = result?.assets[0].uri;
+        setFile(result);
+        setSelectImagePicker(uri);
+      }
+    } catch (err) {
+      console.error("Error picking image:", err);
+    }
+  };
 
   useEffect(() => {
     const processObserverDefault = () => {
@@ -395,11 +551,11 @@ const Accordion = ({ id }) => {
           return null;
         })
         .filter((info) => info !== null);
-
       setSelectedInfo(updatedSelectedInfo);
     };
     processObserverDefault();
   }, [observerDefault]);
+
 
   if (loading) {
     return (
@@ -411,7 +567,6 @@ const Accordion = ({ id }) => {
       />
     );
   }
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -421,26 +576,91 @@ const Accordion = ({ id }) => {
         <Formik
           enableReinitialize
           initialValues={initialValues}
-          onSubmit={(values) => {
-            const usersIds = selectedInfo
-              .filter((info) => info.parentName === "User List")
-              .map((info) => +info.id);
+          onSubmit={async (values) => {
+            const usersIdRequester = requesterDefault
+              .filter((item) => item.startsWith("user-")) // "user-" ile başlayanları filtrele
+              .map((item) => +item.split("-")[1]);
+            const groupsIdRequester = requesterDefault
+              .filter((item) => item.startsWith("group-")) // "user-" ile başlayanları filtrele
+              .map((item) => +item.split("-")[1]);
+            const usersIdObserver = observerDefault
+              .filter((item) => item.startsWith("user-")) // "user-" ile başlayanları filtrele
+              .map((item) => +item.split("-")[1]);
+            const groupsIdObserver = observerDefault
+              .filter((item) => item.startsWith("group-")) // "user-" ile başlayanları filtrele
+              .map((item) => +item.split("-")[1]);
+            const usersIdAssign = assignDefault
+              .filter((item) => item.startsWith("user-")) // "user-" ile başlayanları filtrele
+              .map((item) => +item.split("-")[1]);
+            const groupsIdAssign = assignDefault
+              .filter((item) => item.startsWith("group-")) // "user-" ile başlayanları filtrele
+              .map((item) => +item.split("-")[1]);
+            // const usersIds = selectedInfo
+            //   .filter((info) => info.parentName === "User List")
+            //   .map((info) => +info.id);
 
-            const groupsIds = selectedInfo
-              .filter((info) => info.parentName === "Group List")
-              .map((info) => parseInt(info.id));
+            // const groupsIds = selectedInfo
+            //   .filter((info) => info.parentName === "Group List")
+            //   .map((info) => parseInt(info.id));
+            const delTicketUsers = [
+              ...usersIdAssign,
+              ...usersIdObserver,
+              ...usersIdRequester,
+            ];
+
+            const delTicketGroups = [
+              ...groupsIdAssign,
+              ...groupsIdObserver,
+              ...groupsIdRequester,
+            ];
+
+            const resultUser = {
+              input: ticketUser.map((id) => ({ id })),
+            };
+            const resultGroup = {
+              input: ticketGroup.map((id) => ({ id })),
+            };
+
+            const resDeleteUser = await deleteTicketUser(
+              ticket?.id,
+              resultUser
+            );
+            const resDeleteGroup = await deleteTicketGroup(
+              ticket?.id,
+              resultGroup
+            );
+            //console.log("demeöe",resDeleteUser)
+
             const input = {
               id: ticket?.id,
               users_id_recipient: user_id,
               ...values,
-              _groups_id_assign: [],
-              _groups_id_requester: [],
-              _groups_id_observer: groupsIds,
-              _users_id_observer: usersIds,
+              _groups_id_assign: groupsIdAssign,
+              _users_id_assign: usersIdAssign,
+              _groups_id_requester: groupsIdRequester,
+              _users_id_requester: usersIdRequester,
+              _groups_id_observer: groupsIdObserver,
+              _users_id_observer: usersIdObserver,
             };
-            console.log("input", { input });
-            updateTickets({ input });
-            navigation.navigate("Home");
+            const result = {
+              input: defaultDevices.map((device) => ({ id: device.id })),
+            };
+            console.log(result, "reresult");
+            
+            const deletePluginTicket = await deletePlugin(result);
+
+            const resultUpdate = await updateTickets({ input });
+            const machine = {
+              input: myDevicesDefault.map((item) => ({
+                itemtype: "PluginGenericobjectMakine",
+                items_id: parseInt(item), // item değeri string olduğu için parseInt ile sayıya çeviriyoruz
+                tickets_id: ticket?.id,
+              })),
+            };
+            const resultaddPlugin = await addPluginTicket(machine);
+           fetchTickets()
+           alert("Destek Kaydı Güncellendi")
+            //navigation.navigate("Support");
           }}
         >
           {({
@@ -458,224 +678,484 @@ const Accordion = ({ id }) => {
                 onPress={() => handlePress(0)}
                 content={
                   <View style={styles.content}>
-                    <DatePicker
+                    {/* <DatePicker
                       defaultDate={ticket?.date_creation}
                       label="Seçilen Tarih"
                       func={(date) => setFieldValue("date_creation", date)}
-                    />
-                    <Dropdown
-                      style={styles.dropdown}
-                      className="mt-3 w-full"
-                      placeholderStyle={styles.placeholderStyle}
-                      selectedTextStyle={styles.selectedTextStyle}
-                      inputSearchStyle={styles.inputSearchStyle}
-                      iconStyle={styles.iconStyle}
-                      data={type}
-                      maxHeight={300}
-                      labelField="label"
-                      valueField="value"
-                      disable={name == "Self-Service" ? true : false}
-                      placeholder=""
-                      value={values.type}
-                      onChange={(item) => setFieldValue("type", item.value)}
-                    />
-                    <Dropdown
-                      style={styles.dropdown}
-                      className="mt-3 w-full"
-                      placeholderStyle={styles.placeholderStyle}
-                      selectedTextStyle={styles.selectedTextStyle}
-                      inputSearchStyle={styles.inputSearchStyle}
-                      iconStyle={styles.iconStyle}
-                      data={category}
-                      maxHeight={300}
-                      labelField="label"
-                      valueField="value"
-                      placeholder="Kategori"
-                      search
-                      disable={name == "Self-Service" ? true : false}
-                      searchPlaceholder="Search..."
-                      value={values.itilcategories_id}
-                      onChange={(item) => {
-                        setFieldValue("itilcategories_id", item.value);
-                      }}
-                    />
-                    <Dropdown
-                      style={styles.dropdown}
-                      className="mt-3 w-full"
-                      placeholderStyle={styles.placeholderStyle}
-                      selectedTextStyle={styles.selectedTextStyle}
-                      inputSearchStyle={styles.inputSearchStyle}
-                      iconStyle={styles.iconStyle}
-                      data={status}
-                      maxHeight={300}
-                      labelField="label"
-                      valueField="value"
-                      placeholder="Status"
-                      disable={name == "Self-Service" ? true : false}
-                      search
-                      searchPlaceholder="Search..."
-                      value={values.status}
-                      onChange={(item) => {
-                        console.log(item), setFieldValue("status", item.value);
-                      }}
-                    />
-                    <Dropdown
-                      style={styles.dropdown}
-                      className="mt-3 w-full"
-                      placeholderStyle={styles.placeholderStyle}
-                      selectedTextStyle={styles.selectedTextStyle}
-                      inputSearchStyle={styles.inputSearchStyle}
-                      iconStyle={styles.iconStyle}
-                      data={request_source}
-                      maxHeight={300}
-                      labelField="label"
-                      valueField="value"
-                      placeholder="Request Source"
-                      search
-                      disable={name == "Self-Service" ? true : false}
-                      searchPlaceholder="Search..."
-                      value={values.requesttypes_id}
-                      onChange={(item) => {
-                        setFieldValue("requesttypes_id", item.value);
-                      }}
-                    />
-                    <Dropdown
-                      style={styles.dropdown}
-                      className="mt-3 w-full"
-                      placeholderStyle={styles.placeholderStyle}
-                      selectedTextStyle={styles.selectedTextStyle}
-                      inputSearchStyle={styles.inputSearchStyle}
-                      iconStyle={styles.iconStyle}
-                      data={location}
-                      maxHeight={300}
-                      labelField="label"
-                      valueField="value"
-                      disable={name == "Self-Service" ? true : false}
-                      search
-                      searchPlaceholder="Konum..."
-                      placeholder="Konum"
-                      value={values.locations_id}
-                      onChange={(item) =>
-                        setFieldValue("locations_id", item.value)
-                      }
-                    />
-                    <TextInput
-                      placeholder="Başlık"
-                      multiline={true}
-                      className={`w-full border-[1px] mt-2 border-red-500 p-2 rounded-[8px]  placeholder:text-default placeholder:text-title-medium ${
-                        errors.name && touched.name
-                          ? "border-paradise "
-                          : "border-[1px] border-paradise"
-                      }`}
-                      onChangeText={handleChange("name")}
-                      onBlur={handleBlur("name")}
-                      value={values.name}
-                      editable={name !== "Self-Service"}
-                    />
-                    <TextInput
-                      placeholder="Başlık"
-                      multiline={true}
-                      className={`w-full  border-[1px] mt-2 border-red-500 p-2 rounded-[8px]  placeholder:text-text-default placeholder:text-title-medium ${
-                        errors.content && touched.content
-                          ? "border-paradise "
-                          : "border-[1px] border-paradise"
-                      }`}
-                      onChangeText={handleChange("content")}
-                      onBlur={handleBlur("content")}
-                      value={values.content}
-                      editable={name !== "Self-Service"}
-                    />
-                    <View style={styles.content} className="flex  gap-4 mt-4">
-                      {followItems.length === 0 ? (
-                        <Text className="text-red-500">Document not found</Text>
-                      ) : (
-                        followItems.map((item, index) => (
-                          <View
-                            key={item.id}
-                            className={` ${
-                              index % 2 == 0 ? "bg-red-500" : "bg-red-200"
-                            } flex gap-1 p-2 rounded-md w-[80%]`}
-                          >
-                            <Text className="text-title-small text-default font-semibold ">
-                              {stripHtmlTags(decode(item.content))}
-                            </Text>
-
-                            <View>
-                              {item.followdoc && Array.isArray(item.followdoc)
-                                ? item.followdoc.map((followItems, index) => {
-                                    // followItems bir obje ve documents_id içeriyor
-                                    //console.log("followItems", followItems); // followItems'ı kontrol et
-                                    return (
-                                      <TouchableOpacity
-                                        key={index}
-                                        onPress={() => {
-                                          const url = `${baseUrl.baseUrl}/Document/${followItems.documents_id}?alt=media&app_token=OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ&session_token=${baseUrl.token}`;
-                                          console.log(url, "url"); //     openModal(url);
-                                          handleOpenUrl(url);
-                                        }}
-                                      >
-                                        <Text>
-                                          {followItems.documents_id}.image
-                                        </Text>
-                                        <Image
-                                          source={{
-                                            uri: `${baseUrl.baseUrl}/Document/${followItems.documents_id}?alt=media&app_token=OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ&session_token=${baseUrl.token}`,
-                                          }}
-                                          style={{
-                                            width: 150,
-                                            height: 150,
-                                            borderWidth: 1,
-                                            borderColor: "white",
-                                          }}
-                                          resizeMode="cover" // resmin doğru şekilde sığmasını sağlar
-                                        />
-                                      </TouchableOpacity>
-                                    );
-                                  })
-                                : null}
-                            </View>
-
-                            <Text className="text-slate-600 font-medium">
-                              Created on: {item.date_creation}
-                            </Text>
-                            <Text className="text-slate-600 font-medium">
-                              created by{" "}
-                              {getRequestTypeLabel(item.requesttypes_id)}
-                            </Text>
-                          </View>
-                        ))
-                      )}
-                      {isAdding && (
-                        <View className="flex justify-center item-center">
-                          <TextInput
-                            className="mt-4  border border-red-500 py-4 rounded-[4px] px-2 text-title-small"
-                            placeholder="Yeni içerik"
-                            value={inputValue}
-                            multiline
-                            onChangeText={setInputValue}
-                          />
-                          <TouchableOpacity
-                            className="mt-4 bg-red-500 py-2 rounded-[4px] flex justify-center items-center flex-row "
-                            onPress={handleSendClick}
-                          >
-                            <FontAwesome name="send" size={20} color="#FFF" />
-                            <Text className="text-center text-default font-semibold text-title-small ml-2">
-                              Gönder
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                      {!isAdding && (
-                        <TouchableOpacity
-                          className="mt-4 w-[95%] bg-red-500 py-2 rounded-[4px]"
-                          onPress={handleAddClick}
-                        >
-                          <Text className=" text-center text-default font-semibold text-title-small">
-                            Ekle
-                          </Text>
-                        </TouchableOpacity>
-                      )}
+                    /> */}
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        Tip
+                      </Text>
+                      <Dropdown
+                        style={styles.dropdown}
+                        className="mt-1 w-full"
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={type}
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        disable={name == "Self-Service" ? true : false}
+                        placeholder=""
+                        value={values.type}
+                        onChange={(item) => setFieldValue("type", item.value)}
+                      />
                     </View>
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        Kategori
+                      </Text>
+                      <Dropdown
+                        style={styles.dropdown}
+                        className="mt-1 w-full"
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={category}
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Kategori"
+                        search
+                        searchPlaceholder="Search..."
+                        value={values.itilcategories_id}
+                        onChange={(item) => {
+                          setFieldValue("itilcategories_id", item.value);
+                        }}
+                      />
+                    </View>
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        Durum
+                      </Text>
+                      <Dropdown
+                        style={styles.dropdown}
+                        className="mt-1 w-full"
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={status}
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Durum"
+                        disable={name == "Self-Service" ? true : false}
+                        search
+                        searchPlaceholder="Search..."
+                        value={values.status}
+                        onChange={(item) => {
+                          setFieldValue("status", item.value);
+                        }}
+                      />
+                    </View>
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        İstek Kaynağı
+                      </Text>
+                      <Dropdown
+                        style={styles.dropdown}
+                        className="mt-1 w-full"
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={request_source}
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="İstek Kaynağı"
+                        search
+                        disable={name == "Self-Service" ? true : false}
+                        searchPlaceholder="Search..."
+                        value={values.requesttypes_id}
+                        onChange={(item) => {
+                          setFieldValue("requesttypes_id", item.value);
+                        }}
+                      />
+                    </View>
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        Konum
+                      </Text>
+                      <Dropdown
+                        style={styles.dropdown}
+                        className="mt-1 w-full"
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={location}
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        disable={name == "Self-Service" ? true : false}
+                        search
+                        searchPlaceholder="Konum..."
+                        placeholder="Konum"
+                        value={values.locations_id}
+                        onChange={(item) =>
+                          setFieldValue("locations_id", item.value)
+                        }
+                      />
+                    </View>
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        İlişkilendirilmiş Cihaz
+                      </Text>
+                      <SectionedMultiSelect
+                        items={myDevices} // myDevices, id ve label içermeli
+                        IconRenderer={Icon}
+                        uniqueKey="value" // Veya id, emin olun ki benzersiz
+                        subKey="children"
+                        disabled={name == "Self-Service" ? true : false}
+                        selectedItems={myDevicesDefault}
+                        selectText="İlişkilendirilmiş Cihazlar..."
+                        styles={{
+                          selectToggle: styles.selectToggle,
+                          selectToggleText: styles.selectToggleText,
+                          chipContainer: styles.chipContainer,
+                          chipText: styles.chipText,
+                          itemText: styles.itemText,
+                          subItemText: styles.subItemText,
+                          selectedItemText: styles.selectedItemText,
+                          selectedSubItemText: styles.selectedSubItemText,
+                          confirmText: styles.confirmText,
+                          searchBar: styles.searchBar,
+                          button: styles.button,
+                          buttonText: styles.buttonText,
+                        }}
+                        onSelectedItemsChange={(selectedItems) => {
+                          setMyDevicesDefault((prev) => {
+                            const prevSet = new Set(prev);
+                            const selectedSet = new Set(selectedItems);
+
+                            selectedSet.forEach((item) => prevSet.add(item));
+
+                            prevSet.forEach((item) => {
+                              if (!selectedSet.has(item)) {
+                                prevSet.delete(item);
+                              }
+                            });
+
+                            return Array.from(prevSet);
+                          });
+                        }}
+                      />
+                    </View>
+                    <View className="w-full  flex justify-center items-center bg-red-500 my-2 rounded-md">
+                      <Text className="text-title-medium py-2 text-white font-semibold">
+                        İçerik Bölümü
+                      </Text>
+                    </View>
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        Başlık
+                      </Text>
+                      <TextInput
+                        placeholder="Başlık"
+                        multiline={true}
+                        className={`w-full border-[1px] mt-1 border-red-500 p-2 rounded-[8px]  placeholder:text-default placeholder:text-title-medium ${
+                          errors.name && touched.name
+                            ? "border-paradise "
+                            : "border-[1px] border-paradise"
+                        }`}
+                        onChangeText={handleChange("name")}
+                        onBlur={handleBlur("name")}
+                        value={values.name}
+                        editable={name !== "Self-Service"}
+                      />
+                    </View>
+                    <View className="mt-1">
+                      <Text className="text-body-small text-red-500 font-semibold">
+                        İçerik
+                      </Text>
+                      <TextInput
+                        placeholder="İçerik"
+                        multiline={true}
+                        className={`w-full  border-[1px] mt-1 border-red-500 p-2 rounded-[8px]  placeholder:text-text-default placeholder:text-title-medium ${
+                          errors.content && touched.content
+                            ? "border-paradise "
+                            : "border-[1px] border-paradise"
+                        }`}
+                        onChangeText={handleChange("content")}
+                        onBlur={handleBlur("content")}
+                        value={values.content}
+                        editable={name !== "Self-Service"}
+                      />
+                    </View>
+                    <View className="flex  mt-4 ">
+                      <Text className="text-red-500 font-semibold text-title-medium">
+                        Takip Mesajları
+                      </Text>
+                    </View>
+                    {isLoadingFollowUp ? (
+                      <View>
+                        
+                        <ActivityIndicator />
+                      </View>
+                    ) : (
+                      <View
+                        style={styles.content}
+                        className="flex  gap-2 mt-1 "
+                      >
+                        {followItems.length === 0 ? (
+                          <Text className="text-red-500">
+                            {followSolutionArr.length > 0
+                              ? null
+                              : "Eklenen Takip Mesajı Bulunamadı..."}
+                          </Text>
+                        ) : (
+                          <>
+                            {followItems.map((item, index) => (
+                              <View
+                                key={index}
+                                className={`${
+                                  user_id === item.users_id
+                                    ? "items-end"
+                                    : "items-start"
+                                }`}
+                              >
+                                <View
+                                  className={` ${
+                                    index % 2 == 0 ? "bg-red-500" : "bg-red-200"
+                                  } flex gap-1 p-2 rounded-md w-[80%] border mt-2 `}
+                                >
+                                  <Text className="text-title-small text-default font-semibold ">
+                                    {stripHtmlTags(decode(item.content))}
+                                  </Text>
+
+                                  <View>
+                                    {item.followdoc &&
+                                    Array.isArray(item.followdoc)
+                                      ? item.followdoc.map(
+                                          (followItems, index) => {
+                                            return (
+                                              <TouchableOpacity
+                                                key={index}
+                                                onPress={() => {
+                                                  const url = `${baseUrl.baseUrl}/Document/${followItems.documents_id}?alt=media&app_token=OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ&session_token=${baseUrl.token}`;
+
+                                                  handleOpenUrl(url);
+                                                }}
+                                              >
+                                                <Image
+                                                  source={{
+                                                    uri: `${baseUrl.baseUrl}/Document/${followItems.documents_id}?alt=media&app_token=OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ&session_token=${baseUrl.token}`,
+                                                  }}
+                                                  className="w-full h-40 rounded-lg my-2"
+                                                  resizeMode="cover" // resmin doğru şekilde sığmasını sağlar
+                                                />
+                                                <Text>
+                                                  {followItems.documents_id}
+                                                  .image
+                                                </Text>
+                                              </TouchableOpacity>
+                                            );
+                                          }
+                                        )
+                                      : null}
+                                  </View>
+
+                                  <Text className="text-slate-600 font-medium text-body-small">
+                                    Oluşturma zamanı: {item.date_creation}
+                                  </Text>
+                                  <Text className="text-slate-600 font-medium text-body-small">
+                                    Oluşturan:{" "}
+                                    {getRequestTypeLabel(item.users_id)}
+                                  </Text>
+                                </View>
+                              </View>
+                            ))}
+                          </>
+                        )}
+                        {followSolutionArr?.map((item, index) => (
+                          <View
+                            key={index}
+                            className={`${
+                              user_id === item.users_id
+                                ? "items-end"
+                                : "items-start"
+                            }`}
+                          >
+                            <View
+                              className={` ${
+                                index % 2 == 0 ? "bg-blue-500" : "bg-blue-200"
+                              } flex gap-1 p-2 rounded-md w-[80%] border mt-2 `}
+                            >
+                              <Text className="text-title-small text-default font-semibold ">
+                                {stripHtmlTags(decode(item.content))}
+                              </Text>
+
+                              <View>
+                                {item.followdoc && Array.isArray(item.followdoc)
+                                  ? item.followdoc.map((followItems, index) => {
+                                      return (
+                                        <TouchableOpacity
+                                          key={index}
+                                          onPress={() => {
+                                            const url = `${baseUrl.baseUrl}/Document/${followItems.documents_id}?alt=media&app_token=OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ&session_token=${baseUrl.token}`;
+
+                                            handleOpenUrl(url);
+                                          }}
+                                        >
+                                          <Image
+                                            source={{
+                                              uri: `${baseUrl.baseUrl}/Document/${followItems.documents_id}?alt=media&app_token=OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ&session_token=${baseUrl.token}`,
+                                            }}
+                                            className="w-full h-40 rounded-lg my-2"
+                                            resizeMode="cover" // resmin doğru şekilde sığmasını sağlar
+                                          />
+                                          <Text>
+                                            {followItems.documents_id}
+                                            .image
+                                          </Text>
+                                        </TouchableOpacity>
+                                      );
+                                    })
+                                  : null}
+                              </View>
+
+                              <Text className="text-slate-600 font-medium text-body-small">
+                                Oluşturma zamanı: {item.date_creation}
+                              </Text>
+                              <Text className="text-slate-600 font-medium text-body-small">
+                                Oluşturan: {getRequestTypeLabel(item.users_id)}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                        {isAdding && (
+                          <View className="flex justify-center item-center">
+                            <View className="flex items-end">
+                              <TouchableOpacity
+                                className="w-[10%] bg-red-50 py-2 rounded-[4px] mx-"
+                                onPress={() => setIsAdding(false)}
+                              >
+                                <Text className=" text-center text-default font-semibold text-title-small">
+                                  X
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                            <TextInput
+                              className="mt-1  border border-red-500 py-4 rounded-[4px] px-2 text-title-small"
+                              placeholder="Yeni içerik"
+                              value={inputValue}
+                              multiline
+                              onChangeText={setInputValue}
+                            />
+                            <View className="flex flex-row w-full mb-2 items-center justify-center ">
+                              {(followUpType === 1 || followSolutionArr.length > 0) && (
+                                <TouchableOpacity
+                                  title=""
+                                  onPress={() => handleImagePick()}
+                                  className=" bg-red-500 w-36 ml-2 justify-center items-center flex rounded-md my-2 h-12 "
+                                >
+                                  <Text className="text-white  font-semibold  text-center">
+                                    Galeriyi Aç
+                                  </Text>
+                                </TouchableOpacity>
+                              )}
+                              {selectImagePicker && (
+                                <View className="flex flex-row pl-2">
+                                  <Image
+                                    source={{ uri: selectImagePicker }}
+                                    style={{ width: 48, height: 48 }}
+                                    className="rounded-md"
+                                  />
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      setFile(null);
+                                      setSelectImagePicker(null);
+                                    }}
+                                    className="bg-red-500 w-36 ml-2 justify-center items-center flex rounded-md"
+                                  >
+                                    <Text className="text-white  font-semibold  text-center">
+                                      Seçimi kaldır
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+                            </View>
+                            <TouchableOpacity
+                              className="mt-4 bg-red-500 py-2 rounded-[4px] flex justify-center items-center flex-row "
+                              onPress={handleSendClick}
+                            >
+                              <FontAwesome name="send" size={20} color="#FFF" />
+                              <Text className="text-center text-default font-semibold text-title-small ml-2">
+                                Gönder
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        {!isAdding &&
+                          ticket?.status.toString() !== "5" &&
+                          ticket?.status.toString() !== "6" && (
+                            <View className="flex ">
+                              <View className="flex flex-row mb-4">
+                                <TouchableOpacity
+                                  className={`${
+                                    name === "Self-Service"
+                                      ? "w-full"
+                                      : "w-[80%]"
+                                  } mt-4  bg-red-500 py-2 rounded-[4px]`}
+                                  onPress={handleAddClick}
+                                >
+                                  <Text className=" text-center text-white font-semibold text-title-small">
+                                    Ekle (
+                                    {followUpType === 1
+                                      ? "Yanıt Ekle"
+                                      : "Çözüm Ekle"}
+                                    )
+                                  </Text>
+                                </TouchableOpacity>
+                                {name !== "Self-Service" && (
+                                  <TouchableOpacity
+                                    className="mt-4 w-[18%] bg-red-500 py-2 rounded-[4px] ml-2"
+                                    onPress={() =>
+                                      setMissionModal(!missionModal)
+                                    }
+                                  >
+                                    <Text className=" text-center text-default font-semibold text-title-small">
+                                      <FontAwesome
+                                        name="chevron-down"
+                                        size={20}
+                                        color="#FFF"
+                                      />
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                              <View className="relative bg-red-500 ">
+                                {missionModal && (
+                                  <View className="flex flex-row  justify-center items-center gap-4 py-2">
+                                    <TouchableOpacity
+                                      onPress={() => setFollowUpType(1)}
+                                      className="px-2 py-1 bg-whitekozy rounded-md"
+                                    >
+                                      <Text className="text-default font-semibold text-title-small">
+                                        Yanıt Ekle
+                                      </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                      onPress={() => setFollowUpType(2)}
+                                      className="px-2 py-1 bg-whitekozy rounded-md"
+                                    >
+                                      <Text className="text-default font-semibold text-title-small">
+                                        Çözüm Ekle
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          )}
+                      </View>
+                    )}
                   </View>
                 }
               />
@@ -686,10 +1166,11 @@ const Accordion = ({ id }) => {
                 content={
                   <View style={styles.content}>
                     <SectionedMultiSelect
-                      items={viewer}
+                      items={combinedItems}
                       IconRenderer={Icon}
                       uniqueKey="id"
                       subKey="children"
+                      selectedItems={requesterDefault}
                       disabled={name == "Self-Service" ? true : false}
                       selectText="İstekte Bulunan..."
                       styles={{
@@ -707,9 +1188,10 @@ const Accordion = ({ id }) => {
                         buttonText: styles.buttonText,
                       }}
                       onSelectedItemsChange={(selectedItems) => {
-                        setFieldValue("_users_id_requester", selectedItems);
+                        if (name !== "Self-Service") {
+                          setRequesterDefault([...selectedItems]);
+                        }
                       }}
-                      selectedItems={values._users_id_requester}
                     />
 
                     <SectionedMultiSelect
@@ -720,7 +1202,8 @@ const Accordion = ({ id }) => {
                       selectText="İzleyiciler..."
                       showDropDowns={true}
                       readOnlyHeadings={true}
-                      showChips={false}
+                      showChips={true}
+                      disabled={name == "Self-Service" ? true : false}
                       selectedItems={observerDefault}
                       styles={{
                         selectToggle: styles.selectToggle,
@@ -736,9 +1219,11 @@ const Accordion = ({ id }) => {
                         button: styles.button,
                         buttonText: styles.buttonText,
                       }}
-                      onSelectedItemsChange={(selectedItems) =>
-                        setObserverDefault([...selectedItems])
-                      }
+                      onSelectedItemsChange={(selectedItems) => {
+                        if (name !== "Self-Service") {
+                          setObserverDefault([...selectedItems]); // Sadece 'Self-Service' değilse seçim güncellenir
+                        }
+                      }}
                       onEndReached={loadMoreItems}
                       onEndReachedThreshold={0.1}
                       ListFooterComponent={
@@ -747,10 +1232,10 @@ const Accordion = ({ id }) => {
                         )
                       }
                     />
-                    {selectedInfo.length > 0 && (
+                    {/* {selectedInfo.length > 0 && (
                       <>
                         <View className=" w-full flex flex-row justify-start items-center mt-2 flex-wrap ">
-                          {selectedInfo.map((info,index) => (
+                          {selectedInfo.map((info, index) => (
                             <View
                               key={index}
                               className="w-30   my-1 mr-2 bg-paradise rounded-md"
@@ -760,14 +1245,15 @@ const Accordion = ({ id }) => {
                           ))}
                         </View>
                       </>
-                    )}
+                    )} */}
                     <View className="relative ">
                       <SectionedMultiSelect
-                        items={viewer.filter((item) => item.id == user_id)}
+                        items={combinedItems}
                         IconRenderer={Icon}
                         uniqueKey="id"
                         subKey="children"
                         disabled
+                        selectedItems={assignDefault}
                         selectText="Atanan..."
                         styles={{
                           selectToggle: styles.selectToggle,
@@ -784,13 +1270,34 @@ const Accordion = ({ id }) => {
                           buttonText: styles.buttonText,
                         }}
                         onSelectedItemsChange={(selectedItems) => {
-                          setFieldValue("_users_id_assign", selectedItems);
+                          if (name !== "Self-Service") {
+                            setAssignDefault([...selectedItems]); // Sadece 'Self-Service' değilse seçim güncellenir
+                          }
                         }}
-                        selectedItems={values._users_id_assign}
+                        onEndReached={loadMoreItems}
+                        onEndReachedThreshold={0.1}
+                        ListFooterComponent={
+                          loading && (
+                            <ActivityIndicator size="large" color="#0000ff" />
+                          )
+                        }
+                        // onSelectedItemsChange={(selectedItems) => {
+                        //   setFieldValue("_users_id_assign", selectedItems);
+                        // }}
+                        // selectedItems={values._users_id_assign}
                       />
                       {name === "Technician" && (
                         <TouchableOpacity
-                          onPress={() => setFieldValue("_users_id_assign", [25])}
+                          onPress={() => {
+                            console.log(user_id);
+                            setAssignDefault((prevItems) => {
+                              const userKey = `user-${user_id}`;
+                              if (!prevItems.includes(userKey)) {
+                                return [...prevItems, userKey];
+                              }
+                              return prevItems;
+                            });
+                          }}
                           className="absolute bottom-4 right-[9px]"
                         >
                           <FontAwesome name="user-plus" size={20} color="red" />
@@ -808,11 +1315,16 @@ const Accordion = ({ id }) => {
                 content={
                   <View style={styles.content}>
                     {document.length === 0 ? (
-                      <Text className="text-red-500">Document not found</Text>
+                      <Text className="text-red-500">
+                        Eklenen Döküman bulunamadı...
+                      </Text>
                     ) : (
-                      <View className="flex flex-row gap-4">
+                      <ScrollView
+                        horizontal
+                        className="flex flex-row gap-4 py-4"
+                      >
                         {document?.map((item, index) => (
-                          <View key={item.id}>
+                          <View key={index}>
                             <TouchableOpacity
                               onPress={() => {
                                 const url = `${baseUrl.baseUrl}/Document/${item}?alt=media&app_token=OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ&session_token=${baseUrl.token}`;
@@ -845,7 +1357,7 @@ const Accordion = ({ id }) => {
                             </TouchableOpacity>
                           </View>
                         ))}
-                      </View>
+                      </ScrollView>
                     )}
                     <Modal
                       visible={isModalVisible}
@@ -895,14 +1407,14 @@ const Accordion = ({ id }) => {
             </View>
           )}
         </Formik>
-        {isModalImage && (
+        {/* {isModalImage && (
           <AddDocument
             isModalVisible={isModalImage}
             setModalVisible={setModalImage}
             ticketId={imageFollow}
             followItems={true}
           />
-        )}
+        )} */}
       </ScrollView>
     </KeyboardAvoidingView>
   );

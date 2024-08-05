@@ -8,6 +8,7 @@ const initialState = {
   allBaseUrl: null,
   user_id: null,
   profile: {},
+  group: [],
 };
 
 const authSlice = createSlice({
@@ -16,24 +17,26 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action) => {
       //console.log("action", action.payload);
-      const { user, token, user_id, profile } = action.payload;
-      state.user = user;
-      state.token = token;
-      state.user_id = user_id;
-      state.profile = profile;
+      const { user, token, user_id, profile,group } = action.payload;
+      state.user = user !== undefined ? user : state.user;
+      state.token = token !== undefined ? token : state.token;
+      state.user_id = user_id !== undefined ? user_id : state.user_id;
+      state.profile = profile !== undefined ? profile : state.profile;
+      state.group = group !== undefined ? group : state.group;
     },
     logOut: (state, action) => {
       state.user = null;
       state.token = null;
       state.user_id = null;
       state.profile = null;
+      state.group = null;
       AsyncStorage.removeItem("userData");
     },
     setStore: (state, action) => {
-      const { user, token, user_id, profile } = action.payload;
+      const { user, token, user_id, profile, group } = action.payload;
       AsyncStorage.setItem(
         "userData",
-        JSON.stringify({ user, token, user_id, profile })
+        JSON.stringify({ user, token, user_id, profile, group })
       );
     },
 
@@ -53,6 +56,7 @@ export default authSlice.reducer;
 
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectCurrentUser_id = (state) => state.auth.user_id;
+export const selectCurrentGroup = (state) => state.auth.group;
 export const selectCurrentToken = (state) => state.auth.token;
 export const selectBaseUrl = (state) => state.auth.baseUrl;
 export const selectAllBaseUrl = (state) => state.auth.allBaseUrl;

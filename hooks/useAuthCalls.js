@@ -18,12 +18,12 @@ const useAuthCalls = () => {
     
     let response;
     try {
-      // storedBaseUrl'in çevresindeki çift tırnaklardan kurtulun
+     
       const baseUrl = storedBaseUrl ? storedBaseUrl.replace(/["-]/g, '') : "";
       if (!baseUrl) {
         throw new Error("Base URL is not set");
       }
-      console.log( `${baseUrl}/initSession?get_full_session=true&expand_dropdowns=true`,"deneme")
+      console.log( `${baseUrl}/initSession?get_full_session=true&expand_dropdowns=true`,"deneme",data)
       
       response = await axios.get(
         `${baseUrl}/initSession?get_full_session=true&expand_dropdowns=true`,
@@ -31,23 +31,28 @@ const useAuthCalls = () => {
           headers: {
             "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
             "Content-Type": "application/json",
-            Authorization: `Basic ${data}`,
+            "Authorization": `Basic ${data}`,
           },
-          timeout: 5000, // 5 saniye zaman aşımı
+          //timeout: 5000, // 5 saniye zaman aşımı
         }
       );
-      console.log(response);
+      console.log(response,"res");
   
       const sessionData = response.data.session;
+
+
+      console.log(sessionData.glpifriendlyname,"groups=>")
   
       dispatch(
         setCredentials({
           user: sessionData.glpifriendlyname,
           token: response.data.session_token,
           user_id: sessionData.glpiID,
+          group:sessionData.glpigroups || [],
           profile: {
             id: sessionData.glpiactiveprofile.id,
             name: sessionData.glpiactiveprofile.name,
+            
           },
         })
       );
@@ -58,6 +63,7 @@ const useAuthCalls = () => {
           user: sessionData.glpifriendlyname,
           token: response.data.session_token,
           user_id: sessionData.glpiID,
+          group:sessionData.glpigroups,
           profile: {
             id: sessionData.glpiactiveprofile.id,
             name: sessionData.glpiactiveprofile.name,
@@ -68,9 +74,9 @@ const useAuthCalls = () => {
       console.log(response, "response");
       return response;
     } catch (error) {
-      console.log("Login failed:", error);
-      alert("Login failed.");
-      throw error; // Hatanın dışarıya fırlatılması
+  
+      alert("Bir Hata oluştu...");
+       
     } finally {
       if (response) {
         try {
@@ -79,7 +85,7 @@ const useAuthCalls = () => {
             response.data.session.glpigroups
           );
         } catch (error) {
-          console.error("Error fetching plugin devices:", error);
+          console.log("Error fetching plugin devices:", error.message);
         }
       }
     }
@@ -98,15 +104,15 @@ const useAuthCalls = () => {
           },
         }
       );
-      //console.log("admin", response.data.session_token);
+      
       return response.data.session_token;
     } catch (error) {
-      console.log("Login failed:", error);
+      console.log("Login failed Admin:", error);
     }
   };
 
   const loginUserData = async (data) => {
-    console.log(data);
+    console.log(data,"data");
     const storedBaseUrl = await AsyncStorage.getItem("baseUrl");
     try {
       const response = await axios.get(
@@ -174,7 +180,7 @@ const useAuthCalls = () => {
       await AsyncStorage.setItem(name, JSON.stringify(response.data));
       return response.data;
     } catch (error) {
-      console.error("Fetch failed users:", error);
+      console.log("Fetch failed users:", error.message);
       throw error;
     }
   };
@@ -191,7 +197,7 @@ const useAuthCalls = () => {
       await AsyncStorage.setItem(name, JSON.stringify(response.data));
       return response.data;
     } catch (error) {
-      console.error("Fetch failed users:", error);
+      console.log("Fetch failed users:", error.message);
       throw error;
     }
   };
@@ -224,6 +230,7 @@ const useAuthCalls = () => {
       });
 
       await Promise.all(deviceRequests).then(navigate("Home"));
+      // console.log("deviceRequest=====>",deviceRequests,"deviceRequest===>",devices)
       const liste = Object.entries(devices).flatMap(
         ([deviceList, deviceArray]) =>
           deviceArray
@@ -237,20 +244,24 @@ const useAuthCalls = () => {
               id: device.id,
               name: device.name,
               type: deviceList,
+              serial:device.otherserial
             }))
       );
-      console.log("liste", liste.map(item => ({
-        label: `${item.type} - ${item.name}`,
-        value: item.id.toString()
-      })));
+      // console.log("liste",liste)
+      // console.log("liste=>=>=>=>=>=>", liste.map(item => ({
+      //   label: `${item.type} - ${item.name}`,
+      //   value: item.id.toString(),
+      //   serial:item.serial.toString(),
+      // })));
       await AsyncStorage.setItem("myDevices", JSON.stringify(liste.map(item => ({
         label: `${item.name} - ${item.type}`,
+        serial:item.serial.toString(),
         value: item.id.toString()
       }))));
 
       return devices;
     } catch (error) {
-      console.error("Fetch failed users:", error);
+      console.log("Fetch failed users:", error.message);
       throw error;
     }
   };

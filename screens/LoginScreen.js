@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Image,
+  Button,
 } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
@@ -43,7 +44,9 @@ const LoginForm = ({
     behavior={Platform.OS === "ios" ? "padding" : "height"}
     style={{ flex: 1 }}
   >
+    
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      
       <View className="flex-1 justify-center items-center bg-white p-4">
         <View className="text-3xl font-bold mb-4 w-full">
           <Image
@@ -51,9 +54,14 @@ const LoginForm = ({
             className="w-full h-20"
           />
         </View>
+        {/* <TouchableOpacity
+        onPress={async () => await AsyncStorage.removeItem("baseUrl")}
+      >
+        <Text>Deneme</Text> */}
+      {/* </TouchableOpacity> */}
         <View className="w-full mb-4 relative">
           <Text className="text-title-small text-default font-semibold mb-1">
-            Email
+            Kullanıcı Adı
           </Text>
           <TextInput
             className={`w-full h-12 border p-2 rounded-[8px] ${
@@ -78,7 +86,7 @@ const LoginForm = ({
         </View>
         <View className="w-full mb-4">
           <Text className="text-title-small text-default font-semibold mb-1">
-            Password
+            Parola
           </Text>
           <TextInput
             className={`w-full h-12 border p-2 rounded-[8px] ${
@@ -147,6 +155,7 @@ const SelectBaseUrlForm = ({ handleSubmit, values, setFieldValue }) => {
             {/* {allBaseUrl?.map((item, index) => (
               <Picker.Item label={item.name} value={item.url} key={index} />
             ))} */}
+             <Picker.Item label="Seçiniz" value="" />
             {tempBaseUrl?.map((item, index) => (
               <Picker.Item label={item.name} value={item.url} key={index} />
             ))}
@@ -165,11 +174,11 @@ const SelectBaseUrlForm = ({ handleSubmit, values, setFieldValue }) => {
 const LoginScreen = ({ navigation }) => {
   const [baseUrl, setBaseUrl] = useState("");
   const { login, loginUserData } = useAuthCalls();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   const handleUrlChange = async () => {
-    await AsyncStorage.setItem("baseUrl", "");
-    setBaseUrl("");
+    await AsyncStorage.removeItem("baseUrl");
+    setBaseUrl(null);
   };
 
   useEffect(() => {
@@ -181,19 +190,21 @@ const LoginScreen = ({ navigation }) => {
     fetchData();
   }, []);
 
-  
+  console.log("object basUrl ", baseUrl);
 
   return (
     <>
-      {baseUrl !== "" ? (
+      
+      {baseUrl !== null ? (
         <Formik
           initialValues={{ email: "", password: "" }}
           //validationSchema={validationSchema}
           onSubmit={async (values) => {
+            console.log("object data")
             const concatenatedString = `${values.email}:${values.password}`;
             const base64Encoded = btoa(concatenatedString);
-            await login(base64Encoded,dispatch);
-            await loginUserData("Z2xwaXN5bmM6QnVsdXQuNDQ3OA==")
+            await login(base64Encoded, dispatch);
+            await loginUserData("Z2xwaXN5bmM6QnVsdXQuNDQ3OA==");
           }}
         >
           {({
@@ -219,12 +230,20 @@ const LoginScreen = ({ navigation }) => {
         <Formik
           initialValues={{ selectValue: "" }}
           onSubmit={async (values) => {
-            await AsyncStorage.setItem(
-              "baseUrl",
-              JSON.stringify(values.selectValue)
-            );
-            console.log("we", values.selectValue);
-            setBaseUrl(values.selectValue);
+            if (!values.selectValue) {
+              alert("Lütfen geçerli bir sunucu seçin.");
+            } else {
+              try {
+                await AsyncStorage.setItem(
+                  "baseUrl",
+                  values.selectValue // Do not stringify here
+                );
+                console.log("Seçilen Değer:", values.selectValue);
+                setBaseUrl(values.selectValue);
+              } catch (error) {
+                console.error("AsyncStorage hatası:", error);
+              }
+            }
           }}
         >
           {({ handleSubmit, values, setFieldValue }) => (

@@ -18,14 +18,14 @@ export default function CameraScreen({navigation}) {
 console.log(hasPermission)
     getCameraPermissions();
   }, []);
-
+ 
+  
   const handleBarCodeScanned = async ({ type, data }) => {
+    if (scanned) return; // Eğer zaten tarandıysa, taramayı durdur
     setScanned(true);
     alert(`Bar code with type ${type} and data ${data} has been scanned!`);
-    const dataId = await getTicketById(data)
-    console.log(dataId?.id)
-    //alert(dataId?.id)
-    //navigation.navigate("CreateSupport", { itemId: dataId?.id })
+    //alert(data)
+    navigation.navigate("CreateSupport", { data: data })
   };
 
   if (hasPermission === null) {

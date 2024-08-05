@@ -35,10 +35,10 @@ const ChangeProfile = () => {
           name: data.active_profile.name,
           id: data.active_profile.id,
         };
-        console.log("Active Profile:", profile);
+        
         setSelectedProfile(profile);
       } catch (error) {
-        console.error("Error fetching active profile:", error);
+        console.log("Error fetching active profile:", error);
       }
     };
 
@@ -47,7 +47,6 @@ const ChangeProfile = () => {
 
   const handleProfileSelect = async (profile) => {
     try {
-      console.log("Seçilen profil:", profile.id);
       dispatch(
         setCredentials({ profile: { id: profile.id, name: profile.name } })
       );
@@ -56,13 +55,12 @@ const ChangeProfile = () => {
       const storedData = await AsyncStorage.getItem("userData");
       let userData = JSON.parse(storedData);
 
-      // Yalnızca profil bilgisini değiştirin
       userData.profile = {
         id: profile.id,
         name: profile.name,
       };
+     
 
-      // Güncellenmiş kullanıcı verilerini AsyncStorage'a kaydedin
       await AsyncStorage.setItem("userData", JSON.stringify(userData));
       navigation.navigate("Home");
     } catch (error) {

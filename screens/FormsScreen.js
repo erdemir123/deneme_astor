@@ -1,166 +1,239 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import SectionedMultiSelect from 'react-native-sectioned-multi-select';
-import { MaterialIcons as Icon } from "@expo/vector-icons";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  TextInput,
+  StyleSheet,
+} from "react-native";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { debounce } from "lodash";
+import useTicketCalls from "../hooks/useTicketCalls";
+import { Image } from "react-native";
 
-const MyComponent = () => {
-  const items = [
-    {
-      id: 'first-list',
-      name: 'First List',
-      children: [
-        { id: 'first-list-1', name: 'Item 1-1' },
-        { id: 'first-list-2', name: 'Item 1-2' },
-      ],
-    },
-    {
-      id: 'second-list',
-      name: 'Second List',
-      children: [
-        { id: 'second-list-1', name: 'Item 2-1' },
-        { id: 'second-list-2', name: 'Item 2-2' },
-      ],
-    },
-  ];
-
-  // Başlangıçta belirli öğeleri seçmek için dizi kullanarak ayarlama
-  const initialSelectedItems = ['first-list-1', 'second-list-2'];
-
-  const [selectedItems, setSelectedItems] = useState(initialSelectedItems);
-  const [selectedInfo, setSelectedInfo] = useState([]);
+export default function SupportScreen({ navigation }) {
+  const { getAllTickets } = useTicketCalls();
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredTickets, setFilteredTickets] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState(null);
 
   useEffect(() => {
-    const selectedInfo = initialSelectedItems.map(selectedItemId => {
-      let parentName = '';
-      items.forEach(parent => {
-        const child = parent.children.find(child => child.id === selectedItemId);
-        if (child) {
-          parentName = parent.name;
-        }
-      });
-      return { id: selectedItemId, parentName };
-    });
-    setSelectedInfo(selectedInfo);
+    const fetchTickets = async () => {
+      setLoading(true);
+      try {
+        const fetchedTickets = await getAllTickets(); // Assuming getAllTickets returns tickets
+        setTickets(fetchedTickets); // Update tickets state with fetched tickets
+        setFilteredTickets(fetchedTickets); // Initialize filteredTickets with all tickets
+      } catch (error) {
+        console.error("Error fetching tickets:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTickets();
   }, []);
 
-  const onSelectedItemsChange = (selectedItems) => {
-    setSelectedItems(selectedItems);
-    const selectedInfo = selectedItems.map(selectedItemId => {
-      let parentName = '';
-      items.forEach(parent => {
-        const child = parent.children.find(child => child.id === selectedItemId);
-        if (child) {
-          parentName = parent.name;
-        }
-      });
-      return { id: selectedItemId, parentName };
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    const lowercasedQuery = query.toLowerCase();
+    const filtered = tickets.filter((ticket) => {
+      const matchesName = ticket.name.toLowerCase().includes(lowercasedQuery);
+      const matchesStatus = selectedStatus
+        ? ticket.status.toString() === selectedStatus
+        : true; // If no status selected, match all
+      return matchesName && matchesStatus;
     });
-    setSelectedInfo(selectedInfo);
+    setFilteredTickets(filtered);
   };
 
-  return (
-    <View style={styles.container}>
-      <SectionedMultiSelect
-        items={items}
-        IconRenderer={Icon}
-        uniqueKey="id"
-        subKey="children"
-        selectText="Select items..."
-        showDropDowns={true}
-        readOnlyHeadings={true}
-        styles={{
-          selectToggle: styles.selectToggle,
-          selectToggleText: styles.selectToggleText,
-          chipContainer: styles.chipContainer,
-          chipText: styles.chipText,
-          itemText: styles.itemText,
-          subItemText: styles.subItemText,
-          selectedItemText: styles.selectedItemText,
-          selectedSubItemText: styles.selectedSubItemText,
-          confirmText: styles.confirmText,
-          searchBar: styles.searchBar,
-          button: styles.button,
-          buttonText: styles.buttonText,
-        }}
-        onSelectedItemsChange={onSelectedItemsChange}
-        selectedItems={selectedItems}
+  const debouncedSearch = useRef(debounce(handleSearch, 200)).current;
+
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel(); // Cleanup on unmount
+    };
+  }, [debouncedSearch]);
+
+  const getUrgencyColor = (urgency) => {
+    switch (urgency) {
+      case 5:
+        return "#FF6347"; // Koyu turuncu/kırmızı
+      case 4:
+        return "#FFA500"; // Turuncu
+      case 3:
+        return "#FFFF00"; // Sarı
+      case 2:
+        return "#9ACD32"; // Açık yeşil
+      case 1:
+        return "#32CD32"; // Yeşil
+      default:
+        return "#d1a890"; // Varsayılan olarak beyaz renk
+    }
+  };
+
+  const status = [
+    { label: "Tümü", value: null },
+    { label: "Yeni", value: "1" },
+    { label: "İşleniyor (atanmış)", value: "2" },
+    { label: "İşleniyor (planlanmış)", value: "3" },
+    { label: "Bekliyor", value: "4" },
+    { label: "Çözülmüş", value: "5" },
+    { label: "Kapalı", value: "6" },
+  ];
+
+  const getItemLayout = (data, index) => ({
+    length: 60,
+    offset: 60 * index,
+    index,
+  });
+
+  const renderItem = React.useCallback(
+    ({ item }) => {
+      const ticketStatus = status.find(
+        (s) => s.value === item.status.toString()
+      );
+      return (
+        <TouchableOpacity
+          className="flex py-4 mt-2 px-2 justify-center items-center"
+          onPress={() =>
+            navigation.navigate("CreateSupport", { itemId: item.id })
+          }
+          style={[
+            styles.item,
+            { backgroundColor: getUrgencyColor(item.status) },
+          ]}
+        >
+          <Text className="text-title-medium font-semibold text-default py-1 text-center">
+            {item.name}
+          </Text>
+          <Text className="text-title-medium font-semibold text-gray-600 ml-2 py-1">
+            {item.date_creation}
+          </Text>
+          <Text className="text-title-medium font-semibold text-gray-600 ml-2 py-1">
+            {ticketStatus ? ticketStatus.label : "Bilinmeyen Durum"}
+          </Text>
+        </TouchableOpacity>
+      );
+    },
+    [navigation, status]
+  );
+
+  const sortedTickets = filteredTickets.sort(
+    (a, b) => new Date(b.date_creation) - new Date(a.date_creation)
+  );
+
+  if (loading) {
+    return (
+      <ActivityIndicator
+        size={"large"}
+        color="red"
+        style={styles.loader}
+        animating={true}
+        className="flex-1 "
       />
-      {selectedInfo.map(info => (
-        <Text key={info.id}>{`ID: ${info.id}, Parent: ${info.parentName}`}</Text>
-      ))}
+    );
+  }
+
+  return (
+    <View className="relative flex-1">
+      <Image
+        source={require("../assets/images/yapim.jpg")}
+        className="flex-1 w-[100%] items-center"
+      />
+      <Text className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 mt-10 text-red-500 font-semibold text-title-large">
+        Yapım Aşamasında
+      </Text>
+
+      {/* <TextInput
+        placeholder="Ara..."
+        value={searchQuery}
+        onChangeText={(text) => debouncedSearch(text)}
+        style={styles.searchInput}
+      />
+      <View style={styles.filterContainer}>
+        {status.map((statusItem) => (
+          <TouchableOpacity
+            key={statusItem.value}
+            onPress={() => setSelectedStatus(statusItem.value)}
+            style={[
+              styles.statusButton,
+              selectedStatus === statusItem.value && styles.selectedStatusButton,
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusButtonText,
+                selectedStatus === statusItem.value &&
+                  styles.selectedStatusButtonText,
+              ]}
+            >
+              {statusItem.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <FlatList
+        data={sortedTickets}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        getItemLayout={getItemLayout}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={21}
+      />
+      <TouchableOpacity
+        className=" w-full h-24 mt-4 p-3  justify-center bg-red-500 items-center sticky bottom-0 left-0"
+        onPress={() => navigation.navigate("CreateSupport")}
+      >
+        <MaterialCommunityIcons name="kabaddi" size={50} color="#FFF" />
+
+        <Text className="text-center font-medium text-title-small text-whitekozy">
+          Yeni Destek kaydı aç
+        </Text>
+      </TouchableOpacity> */}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    marginTop: 50,
-    padding: 10,
+  item: {
+    padding: 20,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    borderRadius: 8,
   },
-  selectToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  searchInput: {
+    height: 40,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    margin: 10,
+    paddingHorizontal: 8,
+    borderRadius: 5,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 10,
+  },
+  statusButton: {
     padding: 10,
-    backgroundColor: '#fff',
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
+    backgroundColor: "#fff",
   },
-  selectToggleText: {
-    fontSize: 16,
-    color: '#000',
-    marginLeft: 10,
+  selectedStatusButton: {
+    backgroundColor: "#ddd",
   },
-  chipContainer: {
-    borderRadius: 5,
-    backgroundColor: '#f2f2f2',
-    padding: 5,
-    margin: 2,
+  statusButtonText: {
+    color: "#000",
   },
-  chipText: {
-    color: '#333',
-    fontSize: 14,
-  },
-  itemText: {
-    color: '#333',
-    fontSize: 16,
-  },
-  subItemText: {
-    color: '#666',
-    fontSize: 14,
-    paddingLeft: 20,
-  },
-  selectedItemText: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
-  selectedSubItemText: {
-    color: '#000',
-    fontWeight: 'bold',
-    paddingLeft: 20,
-  },
-  confirmText: {
-    color: '#000',
-    fontSize: 16,
-  },
-  searchBar: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 5,
-    marginBottom: 10,
-  },
-  button: {
-    backgroundColor: '#007bff',
-    padding: 10,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
+  selectedStatusButtonText: {
+    color: "#000",
+    fontWeight: "bold",
   },
 });
-
-export default MyComponent;

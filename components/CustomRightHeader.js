@@ -13,9 +13,7 @@ export default function CustomHeaderRight() {
   const navigation= useNavigation()
     return (
       <View >
-        <TouchableOpacity onPress={()=>{dispatch(logOut()); navigation.navigate("Login")}}>
-        <MaterialCommunityIcons name="logout" size={25} color="red" />
-        </TouchableOpacity>
+        
       </View>
     );
   }
