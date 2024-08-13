@@ -1,10 +1,13 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import useAuthCalls from "./useAuthCalls";
-import mime from "mime";
+import { Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 const useFormCalls = () => {
   const { loginAdminToken } = useAuthCalls();
+  const navigation = useNavigation()
+  const appToken = process.env.EXPO_PUBLIC_APP_TOKEN;
 
   const getStoredData = async () => {
     const [storedBaseUrl, userDataString] = await Promise.all([
@@ -29,7 +32,7 @@ const useFormCalls = () => {
       const { storedBaseUrl, token } = await getStoredData();
       const admin_token = await loginAdminToken();
       const headers = {
-        "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+        "App-Token": appToken,
         "Content-Type": "application/json",
         "Session-Token": admin_token,
       };
@@ -70,13 +73,17 @@ const useFormCalls = () => {
     try {
       const url1 = `${storedBaseUrl}/PluginFormcreatorForm?range=0-5000&expand_dropdowns=true`;
       const headers = {
-        "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+        "App-Token": appToken,
         "Content-Type": "application/json",
         "Session-Token": token,
       };
       const response = await axios.get(url1, { headers });
       if (response) {
-        console.log("Form izinleri alındı formAllForm:",response.data ,"formAllForm");
+        // console.log(
+        //   "Form izinleri alındı formAllForm:",
+        //   response.data,
+        //   "formAllForm"
+        // );
         return response.data;
       } else {
         console.error("Form izinleri alınırken hata oluştu:");
@@ -89,17 +96,21 @@ const useFormCalls = () => {
   };
   const getAllFormCategory = async () => {
     const { storedBaseUrl, token } = await getStoredData();
-    
+
     try {
       const url1 = `${storedBaseUrl}/PluginFormcreatorCategory?range=0-500&expand_dropdowns=true`;
       const headers = {
-        "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+        "App-Token": appToken,
         "Content-Type": "application/json",
         "Session-Token": token,
       };
       const response = await axios.get(url1, { headers });
       if (response) {
-        console.log("Form izinleri alındı formAllFormCategory:",response.data ,"formAllFormCategory");
+        // console.log(
+        //   "Form izinleri alındı formAllFormCategory:",
+        //   response.data,
+        //   "formAllFormCategory"
+        // );
         return response.data;
       } else {
         console.error("Form izinleri alınırken hata oluştu:");
@@ -112,21 +123,20 @@ const useFormCalls = () => {
   };
   const getFormSection = async (form_id) => {
     const { storedBaseUrl, token } = await getStoredData();
-    console.log(form_id, "id func");
-  
+    //console.log(form_id, "id func");
+
     try {
       const url1 = `${storedBaseUrl}/PluginFormcreatorForm/${form_id}/PluginFormcreatorSection?&range=0-500&expand_dropdowns=true`;
       const headers = {
-        "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+        "App-Token": appToken,
         "Content-Type": "application/json",
         "Session-Token": token,
       };
-      
-      console.log(url1)
+
       const response = await axios.get(url1, { headers });
-      
+
       if (response && response.data) {
-        console.log("getFormSection:", response.data);
+        // console.log("getFormSection:", response.data);
         return response.data;
       } else {
         console.error("Response data is empty");
@@ -139,24 +149,23 @@ const useFormCalls = () => {
   };
   const getFormSectionQuestion = async (section_id) => {
     const { storedBaseUrl, token } = await getStoredData();
- 
-  
+
     try {
       const url1 = `${storedBaseUrl}/PluginFormcreatorSection/${section_id}/PluginFormcreatorQuestion?range=0-100`;
       const headers = {
-        "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+        "App-Token": appToken,
         "Content-Type": "application/json",
         "Session-Token": token,
       };
-      
-      console.log(url1)
+
+      //console.log(url1);
       const response = await axios.get(url1, { headers });
-      
+
       if (response && response.data) {
-        console.log("getFormSectionQuestion:", response.data);
+        // console.log("getFormSectionQuestion:", response.data);
         return response.data;
       } else {
-        console.error("getFormSectionQuestion data is empty");
+        //console.error("getFormSectionQuestion data is empty");
         return null; // veya uygun bir değer döndürün
       }
     } catch (error) {
@@ -164,39 +173,128 @@ const useFormCalls = () => {
       return null; // veya uygun bir değer döndürün
     }
   };
-  
-  const getUserForm = (userId, profileId, groupIds, userForms, profileForms, groupForms)=> {
-    
+
+  const getUserForm = (
+    userId,
+    profileId,
+    groupIds,
+    userForms,
+    profileForms,
+    groupForms
+  ) => {
     const userFormIds = new Set();
- 
-    userForms.forEach(form => {
+
+    userForms.forEach((form) => {
       if (form.users_id === userId) {
         userFormIds.add(form.plugin_formcreator_forms_id);
       }
     });
-  
+
     // Profil form verilerini filtreleme
-    profileForms.forEach(form => {
+    profileForms.forEach((form) => {
       if (form.profiles_id === profileId) {
         userFormIds.add(form.plugin_formcreator_forms_id);
       }
     });
-  
+
     // Grup form verilerini filtreleme
-    groupForms.forEach(form => {
+    groupForms.forEach((form) => {
       if (groupIds.includes(form.groups_id)) {
         userFormIds.add(form.plugin_formcreator_forms_id);
       }
     });
     return Array.from(userFormIds);
-  }
-  
+  };
+
+  const useFormConditions = async () => {
+    const { storedBaseUrl, token } = await getStoredData();
+    const url1 = `${storedBaseUrl}/PluginFormcreatorCondition?range=0-10000`;
+    const headers = {
+      "App-Token": appToken,
+      "Content-Type": "application/json",
+      "Session-Token": token,
+    };
+    try {
+      const response = await axios.get(url1, { headers });
+      //console.log("conditions==>",response.data)
+      return response.data;
+    } catch (error) {
+      console.log("object", error);
+    }
+  };
+  const useFormGetType = async (href) => {
+    const { storedBaseUrl, token } = await getStoredData();
+    const admin_token = await loginAdminToken();
+    const url1 = `${storedBaseUrl}/${href}`;
+    const headers = {
+      "App-Token": appToken,
+      "Content-Type": "application/json",
+      "Session-Token": admin_token,
+    };
+    try {
+      const response = await axios.get(url1, { headers });
+      //console.log("conditions==>",response.data)
+      return response.data;
+    } catch (error) {
+      console.log("object", error);
+    }
+  };
+  const submitForm = async (data) => {
+    const { storedBaseUrl, token } = await getStoredData();
+    const admin_token = await loginAdminToken();
+    const url1 = `${storedBaseUrl}/PluginFormcreatorFormAnswer`;
+    const headers = {
+      "App-Token": appToken,
+      "Content-Type": "application/json",
+      "Session-Token": token,
+    };
+
+    try {
+      const response = await axios.post(url1, data, { headers });
+      if (response?.data.message) {
+        Alert.alert("Başarılı", response.data.message);
+        setTimeout(() => {
+          navigation.navigate("Home");
+        }, 2000);
+      }
+      return response.data;
+    } catch (error) {
+      let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+
+        if (Array.isArray(error.response.data)) {
+          errorMessage = error.response.data
+            .map((msg) => `• ${msg}`)
+            .join("\n");
+        } else if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.log("No Response Received:", error.request);
+        errorMessage =
+          "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+      } else {
+        console.log("Error Message:", error.message);
+      }
+
+      Alert.alert("Hata", errorMessage);
+
+      return null;
+    }
+  };
 
   return {
     getAllFormPermission,
     getAllForm,
     getAllFormCategory,
-    getUserForm,getFormSection,getFormSectionQuestion
+    getUserForm,
+    getFormSection,
+    getFormSectionQuestion,
+    useFormConditions,
+    useFormGetType,
+    submitForm,
   };
 };
 

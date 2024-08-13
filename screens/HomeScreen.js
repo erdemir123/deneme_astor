@@ -1,21 +1,52 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   logOut,
   selectCurrentUser,
+  selectLoading,
   selectProfile,
 } from "../toolkit/services/AuthSlice";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRoute } from "@react-navigation/native";
 
 export default function HomeScreen({ navigation }) {
+  const route = useRoute();
+  const loading = route.params?.loading ?? false;
+
   const user = useSelector(selectCurrentUser);
-
   const profile = useSelector(selectProfile);
-  console.log(user, "user", profile);
-  const dispatch= useDispatch()
+  const [loadingHome, setLoadingHome] = useState(false);
+  const dispatch = useDispatch();
+  console.log(loading, "loading");
+  useEffect(() => {
+    setLoadingHome(false);
+    if (loading) {
+      setLoadingHome(true);
+      
+    }
+    setTimeout(() => setLoadingHome(false), 5000);
+  }, []); 
+  console.log(loadingHome,"loadingHome")
 
+  if (loadingHome) {
+    return (
+      <ActivityIndicator
+        size={"large"}
+        color="red"
+        className="flex-1 justify-center items-center"
+        animating={true}
+      />
+    );
+  }
   return (
     <View className="flex-1 flex-row bg-slate-500/20 flex justify-center items-center  gap-5 flex-wrap pt-4 border border-red-500">
       <Image

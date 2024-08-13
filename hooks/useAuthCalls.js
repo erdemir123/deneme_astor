@@ -2,81 +2,109 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
-import { setAllBaseUrl, setCredentials } from "../toolkit/services/AuthSlice";
+import {
+  setAllBaseUrl,
+  setCredentials,
+  setLoading,
+} from "../toolkit/services/AuthSlice";
+import { Alert } from "react-native";
 
 const useAuthCalls = () => {
   const { navigate } = useNavigation();
   const dispatch = useDispatch();
 
-  const login = async (data, dispatch) => {
+  const appToken = process.env.EXPO_PUBLIC_APP_TOKEN;
+  const adminName = process.env.EXPO_PUBLIC_ADMIN_NAME;
+
+  const login = async (data, dispatch,setLoginPromise) => {
+    setLoginPromise(true)
     console.log(data, "data");
-    
+
     const storedBaseUrl = await AsyncStorage.getItem("baseUrl");
     const userData = await AsyncStorage.getItem("userData");
     console.log("userData", userData);
     console.log("storedBaseUrl", storedBaseUrl, data);
-    
+
     let response;
     try {
-     
-      const baseUrl = storedBaseUrl ? storedBaseUrl.replace(/["-]/g, '') : "";
+      const baseUrl = storedBaseUrl ? storedBaseUrl.replace(/["-]/g, "") : "";
       if (!baseUrl) {
         throw new Error("Base URL is not set");
       }
-      console.log( `${baseUrl}/initSession?get_full_session=true&expand_dropdowns=true`,"deneme",data)
-      
+      console.log(
+        `${baseUrl}/initSession?get_full_session=true&expand_dropdowns=true`,
+        "deneme",
+        data
+      );
+
       response = await axios.get(
         `${baseUrl}/initSession?get_full_session=true&expand_dropdowns=true`,
         {
           headers: {
-            "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+            "App-Token": appToken,
             "Content-Type": "application/json",
-            "Authorization": `Basic ${data}`,
+            Authorization: `Basic ${data}`,
           },
           //timeout: 5000, // 5 saniye zaman aşımı
         }
       );
-      console.log(response,"res");
-  
+      console.log(response, "res");
+
       const sessionData = response.data.session;
 
+      console.log(sessionData.glpifriendlyname, "groups=>");
 
-      console.log(sessionData.glpifriendlyname,"groups=>")
-  
       dispatch(
         setCredentials({
           user: sessionData.glpifriendlyname,
           token: response.data.session_token,
           user_id: sessionData.glpiID,
-          group:sessionData.glpigroups || [],
+          group: sessionData.glpigroups || [],
           profile: {
             id: sessionData.glpiactiveprofile.id,
             name: sessionData.glpiactiveprofile.name,
-            
           },
         })
       );
-  
+
       await AsyncStorage.setItem(
         "userData",
         JSON.stringify({
           user: sessionData.glpifriendlyname,
           token: response.data.session_token,
           user_id: sessionData.glpiID,
-          group:sessionData.glpigroups,
+          group: sessionData.glpigroups,
           profile: {
             id: sessionData.glpiactiveprofile.id,
             name: sessionData.glpiactiveprofile.name,
           },
         })
       );
-  
-      console.log(response, "response");
+
+      // console.log(response, "response");
       return response;
     } catch (error) {
-  
-      alert("Bir Hata oluştu...");
-       
+      let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+
+        if (Array.isArray(error.response.data)) {
+          errorMessage = error.response.data
+            .map((msg) => `• ${msg}`)
+            .join("\n");
+        } else if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.log("No Response Received:", error.request);
+        errorMessage =
+          "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+      } else {
+        console.log("Error Message:", error.message);
+      }
+
+      Alert.alert("Hata", errorMessage);
     } finally {
       if (response) {
         try {
@@ -86,8 +114,10 @@ const useAuthCalls = () => {
           );
         } catch (error) {
           console.log("Error fetching plugin devices:", error.message);
+          navigate("Login");
         }
       }
+      setLoginPromise(false)
     }
   };
 
@@ -98,28 +128,28 @@ const useAuthCalls = () => {
         `${storedBaseUrl?.replace(/"/g, "")}/initSession`,
         {
           headers: {
-            "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+            "App-Token": appToken,
             "Content-Type": "application/json",
-            Authorization: `Basic Z2xwaXN5bmM6QnVsdXQuNDQ3OA==`,
+            Authorization: `Basic ${adminName}`,
           },
         }
       );
-      
+
       return response.data.session_token;
     } catch (error) {
-      console.log("Login failed Admin:", error);
+      Alert.alert("Bir Hata Oluştu...");
+      navigate("Login");
     }
   };
 
   const loginUserData = async (data) => {
-    console.log(data,"data");
     const storedBaseUrl = await AsyncStorage.getItem("baseUrl");
     try {
       const response = await axios.get(
         `${storedBaseUrl?.replace(/"/g, "")}/initSession`,
         {
           headers: {
-            "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+            "App-Token": appToken,
             "Content-Type": "application/json",
             Authorization: `Basic ${data}`,
           },
@@ -152,10 +182,12 @@ const useAuthCalls = () => {
         "Group",
         response.data.session_token
       );
-      
+
       return response;
     } catch (error) {
-      console.log("Login failed:", error);
+      console.log("Login failed:", error.response.data);
+      navigate("Login");
+      
       //alert("giriş yapılamadı ");
       //throw error;
     }
@@ -165,6 +197,7 @@ const useAuthCalls = () => {
     const response = await axios.get(
       "https://astoras.com.tr/img/link/list.json"
     );
+    console.log(response.data.services);
     dispatch(setAllBaseUrl(response.data.services));
   };
 
@@ -172,16 +205,38 @@ const useAuthCalls = () => {
     try {
       const response = await axios.get(`${baseUrl}/${name}?range=0-1000`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
       });
       await AsyncStorage.setItem(name, JSON.stringify(response.data));
+
       return response.data;
     } catch (error) {
-      console.log("Fetch failed users:", error.message);
-      throw error;
+      let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+
+        if (Array.isArray(error.response.data)) {
+          errorMessage = error.response.data
+            .map((msg) => `• ${msg}`)
+            .join("\n");
+        } else if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.log("No Response Received:", error.request);
+        errorMessage =
+          "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+      } else {
+        console.log("Error Message:", error.message);
+      }
+
+      Alert.alert("Hata", errorMessage);
+      navigate("Login");
+      // alert("giriş yapılamadı ");
     }
   };
   const getAllGroups = async (baseUrl, name) => {
@@ -189,7 +244,7 @@ const useAuthCalls = () => {
     try {
       const response = await axios.get(`${baseUrl}/${name}?range=0-1000`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": admin_token,
         },
@@ -197,13 +252,35 @@ const useAuthCalls = () => {
       await AsyncStorage.setItem(name, JSON.stringify(response.data));
       return response.data;
     } catch (error) {
-      console.log("Fetch failed users:", error.message);
-      throw error;
+      let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+
+        if (Array.isArray(error.response.data)) {
+          errorMessage = error.response.data
+            .map((msg) => `• ${msg}`)
+            .join("\n");
+        } else if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.log("No Response Received:", error.request);
+        errorMessage =
+          "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+      } else {
+        console.log("Error Message:", error.message);
+      }
+
+      Alert.alert("Hata", errorMessage);
+      navigate("Login");
+
+      // throw error;
     }
   };
 
   const getPluginDevices = async (id, group) => {
-    console.log("object id groups", id, group);
+    dispatch(setLoading(true));
     const devices = {};
     try {
       const storedBaseUrl = (await AsyncStorage.getItem("baseUrl")).replace(
@@ -213,7 +290,7 @@ const useAuthCalls = () => {
       const admin_token = await loginAdminToken();
 
       const headers = {
-        "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+        "App-Token": appToken,
         "Content-Type": "application/json",
         "Session-Token": admin_token,
       };
@@ -225,44 +302,100 @@ const useAuthCalls = () => {
 
       const deviceRequests = response.data.map(async (item) => {
         const itemUrl = `${storedBaseUrl}/${item.itemtype}?range=0-1000`;
+        //console.log(itemUrl, "itemUrl");
         const itemResponse = await axios.get(itemUrl, { headers });
         devices[item.itemtype] = itemResponse.data;
       });
 
-      await Promise.all(deviceRequests).then(navigate("Home"));
-      // console.log("deviceRequest=====>",deviceRequests,"deviceRequest===>",devices)
+      await Promise.all(deviceRequests).then(
+        navigate("Home", { loading: true })
+      );
+      //console.log("deviceRequest=====>",deviceRequests)
+      //console.log("deviceRequest===>", devices);
       const liste = Object.entries(devices).flatMap(
         ([deviceList, deviceArray]) =>
           deviceArray
             .filter(
-              (device) =>
-                group.includes(device.groups_id) ||
-                device.users_id === id ||
-                device.users_id_tech === id
+              (device) => device.users_id === id
+              // group.includes(device.groups_id) ||
+              // device.users_id === id ||
+              // device.users_id_tech === id
             )
             .map((device) => ({
               id: device.id,
               name: device.name,
               type: deviceList,
-              serial:device.otherserial
+              serial: device.serial,
+              otherserial: device.otherserial,
+              locations_id: device.locations_id,
             }))
       );
-      // console.log("liste",liste)
+      //console.log("liste",liste)
       // console.log("liste=>=>=>=>=>=>", liste.map(item => ({
       //   label: `${item.type} - ${item.name}`,
       //   value: item.id.toString(),
       //   serial:item.serial.toString(),
       // })));
-      await AsyncStorage.setItem("myDevices", JSON.stringify(liste.map(item => ({
-        label: `${item.name} - ${item.type}`,
-        serial:item.serial.toString(),
-        value: item.id.toString()
-      }))));
-
+      await AsyncStorage.setItem(
+        "myDevices",
+        JSON.stringify(
+          liste.map((item) => ({
+            label: `Makine - ${item.name} - ${item.serial} - ${item?.otherserial}`,
+            serial: item.serial.toString(),
+            value: item.id.toString(),
+            otherserial: item.otherserial.toString(),
+            locations_id: item.locations_id.toString(),
+          }))
+        )
+      );
+      dispatch(setLoading(false));
       return devices;
     } catch (error) {
-      console.log("Fetch failed users:", error.message);
-      throw error;
+      let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+
+        if (Array.isArray(error.response.data)) {
+          errorMessage = error.response.data
+            .map((msg) => `• ${msg}`)
+            .join("\n");
+        } else if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.log("No Response Received:", error.request);
+        errorMessage =
+          "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+      } else {
+        console.log("Error Message:", error.message);
+      }
+
+      Alert.alert("Hata", errorMessage);
+    }
+  };
+  const getPluginByDevices = async (href) => {
+    try {
+      const admin_token = await loginAdminToken();
+      const storedBaseUrl = await AsyncStorage.getItem("baseUrl");
+
+      const headers = {
+        "App-Token": appToken,
+        "Content-Type": "application/json",
+        "Session-Token": admin_token,
+      };
+
+      const response = await axios.get(
+        `${storedBaseUrl}/${href}?range=0-1000`,
+        {
+          headers,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.log("API isteği başarısız oldu:", error);
+      //throw error; // Eğer hata yakalanırsa dışarıya tekrar fırlatılabilir
     }
   };
 
@@ -272,6 +405,7 @@ const useAuthCalls = () => {
     loginUserData,
     loginAdminToken,
     getPluginDevices,
+    getPluginByDevices,
   };
 };
 

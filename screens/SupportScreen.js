@@ -16,7 +16,7 @@ import { selectCurrentUser } from "../toolkit/services/AuthSlice";
 import { useFocusEffect } from "@react-navigation/native";
 
 export default function SupportScreen({ navigation }) {
-  const user = useSelector(selectCurrentUser)
+  const user = useSelector(selectCurrentUser);
   const { getAllTickets } = useTicketCalls();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,8 @@ export default function SupportScreen({ navigation }) {
           setTickets(fetchedTickets);
           setFilteredTickets(fetchedTickets);
         } catch (error) {
-          console.error("Error fetching tickets:", error);
+          console.log("Error fetching tickets:", error);
+          navigation.navigate("Home");
         } finally {
           setLoading(false);
         }
@@ -41,7 +42,6 @@ export default function SupportScreen({ navigation }) {
       fetchTickets();
     }, [])
   );
-
 
   const status = [
     { label: "Yeni", value: "1" },
@@ -81,7 +81,9 @@ export default function SupportScreen({ navigation }) {
   };
 
   // Debounced search function to avoid too many re-renders
-  const debouncedSearch = useCallback(debounce(handleSearch, 300), [handleSearch]);
+  const debouncedSearch = useCallback(debounce(handleSearch, 300), [
+    handleSearch,
+  ]);
 
   useEffect(() => {
     debouncedSearch();
@@ -89,18 +91,20 @@ export default function SupportScreen({ navigation }) {
 
   const getUrgencyColor = (urgency) => {
     switch (urgency) {
+      case 6:
+        return "#f4f4f4";
       case 5:
-        return "#FF6347";
+        return "#B1B1B1";
       case 4:
-        return "#D7D7D7";
+        return "#FFCB7D";
       case 3:
-        return "#AD9FCF"; 
+        return "#6198D5";
       case 2:
-        return "#9ACD32"; 
+        return "#EAF4F9";
       case 1:
-        return "#32CD32"; 
+        return "#6ED169";
       default:
-        return "#DDDDDD";
+        return "orange";
     }
   };
 
@@ -117,24 +121,35 @@ export default function SupportScreen({ navigation }) {
       );
       return (
         <TouchableOpacity
-          className="flex py-4 mt-2 px-2 justify-center items-center"
+          className="flex py-4 mt-2 px-2 justify-center items-center shadow-lg"
           onPress={() =>
             navigation.navigate("CreateSupport", { itemId: item.id })
+            //console.log(item.status)
           }
           style={[
             styles.item,
             { backgroundColor: getUrgencyColor(item.status) },
           ]}
+          
         >
+          
           <Text className="text-title-medium font-semibold text-default py-1 text-center">
-            {`${item.name} - ${item.id} -${item.users_id_recipient}`}
+            {`${item.name}`}
           </Text>
-          <Text className="text-title-medium font-semibold text-gray-600 ml-2 py-1">
+          <Text className="text-title-medium font-semibold text-default ml-2 py-1">
             {item.date_creation}
           </Text>
-          <Text className="text-title-medium font-semibold text-gray-600 ml-2 py-1">
+          <Text className="text-title-medium font-semibold text-default ml-2 py-1">
             {ticketStatus ? ticketStatus.label : "Bilinmeyen Durum"}
           </Text>
+          <View className="flex flex-row items-center justify-between w-full">
+            <Text className="text-label-small font-regular text-default  py-1 text-center">
+              id:{`${item.id} `}
+            </Text>
+            <Text className="text-label-small font-regular text-default  py-1 text-center">
+              Oluşturan:{`${item.users_id_recipient}`}
+            </Text>
+          </View>
         </TouchableOpacity>
       );
     },

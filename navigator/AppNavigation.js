@@ -18,6 +18,7 @@ import SupportScreen from "../screens/SupportScreen";
 import FormsScreen from "../screens/FormsScreen";
 import CreateSupportScreen from "../screens/CreateSupportScreen";
 import FormScreen from "../screens/FormScreen";
+import NewFormScreen from "../screens/NewFormScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -122,6 +123,16 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Form"
           component={FormScreen}
+          options={{
+            title: "Form",
+            headerTitleStyle: { color: "red" },
+            headerRight: () => <CustomHeaderRight />,
+            headerLeft: null,
+          }}
+        />
+        <Stack.Screen
+          name="NewForm"
+          component={NewFormScreen}
           options={{
             title: "Form",
             headerTitleStyle: { color: "red" },

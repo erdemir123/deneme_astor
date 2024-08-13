@@ -659,7 +659,7 @@ const Accordion = ({ id }) => {
             };
             const resultaddPlugin = await addPluginTicket(machine);
            fetchTickets()
-           alert("Destek Kaydı Güncellendi")
+           //alert("Destek Kaydı Güncellendi")
             //navigation.navigate("Support");
           }}
         >
@@ -720,6 +720,7 @@ const Accordion = ({ id }) => {
                         labelField="label"
                         valueField="value"
                         placeholder="Kategori"
+                        disable={name == "Self-Service" ? true : false}
                         search
                         searchPlaceholder="Search..."
                         value={values.itilcategories_id}

@@ -21,6 +21,7 @@ const ChangeProfile = () => {
         setMyProfiles(profilesData.myprofiles);
       } catch (error) {
         console.error("Error fetching profiles:", error);
+        navigation.navigate("Home");
       }
     };
 
@@ -39,6 +40,7 @@ const ChangeProfile = () => {
         setSelectedProfile(profile);
       } catch (error) {
         console.log("Error fetching active profile:", error);
+        navigation.navigate("Home");
       }
     };
 

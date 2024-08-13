@@ -3,9 +3,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import useAuthCalls from "./useAuthCalls";
 
 import mime from "mime";
+import { Alert } from "react-native";
 
 const useTicketCalls = () => {
   const { loginAdminToken } = useAuthCalls();
+  const appToken = process.env.EXPO_PUBLIC_APP_TOKEN;
   const getStoredData = async () => {
     const [storedBaseUrl, userDataString] = await Promise.all([
       AsyncStorage.getItem("baseUrl"),
@@ -28,9 +30,9 @@ const useTicketCalls = () => {
     try {
       const { storedBaseUrl, token } = await getStoredData();
 
-      const response = await axios.get(`${storedBaseUrl}/Ticket?range=0-10000`, {
+      const response = await axios.get(`${storedBaseUrl}/Ticket?range=0-10000&expand_dropdowns=true`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -48,7 +50,7 @@ const useTicketCalls = () => {
     const { storedBaseUrl, token } = await getStoredData();
     const admin_token = await loginAdminToken();
     const headers = {
-      "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+      "App-Token": appToken,
       "Content-Type": "application/json",
       "Session-Token": admin_token,
     };
@@ -71,7 +73,7 @@ const useTicketCalls = () => {
     const { storedBaseUrl, token } = await getStoredData();
     const admin_token = await loginAdminToken();
     const headers = {
-      "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+      "App-Token": appToken,
       "Content-Type": "application/json",
       "Session-Token": admin_token,
     };
@@ -93,7 +95,7 @@ const useTicketCalls = () => {
     const { storedBaseUrl, token } = await getStoredData();
     const admin_token = await loginAdminToken();
     const headers = {
-      "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+      "App-Token": appToken,
       "Content-Type": "application/json",
       "Session-Token": token,
     };
@@ -121,7 +123,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
     const { storedBaseUrl, token } = await getStoredData();
     console.log(storedBaseUrl, data);
     const headers = {
-      "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+      "App-Token": appToken,
       "Content-Type": "application/json",
       "Session-Token": token,
     };
@@ -151,7 +153,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${storedBaseUrl}/getActiveProfile/`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -169,7 +171,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${storedBaseUrl}/getMyProfiles`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -188,7 +190,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${storedBaseUrl}/Ticket/${id}`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -207,7 +209,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${storedBaseUrl}/Ticket/${id}/Item_Ticket`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -228,7 +230,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${href}`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": admin_token,
         },
@@ -250,7 +252,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${href}`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -269,17 +271,37 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.post(`${storedBaseUrl}/Ticket/`, data, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
       });
 
       console.log("Response data cretae:", response.data);
+      Alert.alert("Başarılı", response.data.message);
       return response.data;
     } catch (error) {
-      console.log("Fetch failed: create", error);
-      throw error;
+      let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+
+        if (Array.isArray(error.response.data)) {
+          errorMessage = error.response.data
+            .map((msg) => `• ${msg}`)
+            .join("\n");
+        } else if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.log("No Response Received:", error.request);
+        errorMessage =
+          "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+      } else {
+        console.log("Error Message:", error.message);
+      }
+
+      Alert.alert("Hata", errorMessage);
     }
   };
   const addPluginTicket = async (data) => {
@@ -289,7 +311,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
       const { storedBaseUrl, token } = await getStoredData();
       const response = await axios.post(`${storedBaseUrl}/Item_Ticket/`, data, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -312,7 +334,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
         data,
         {
           headers: {
-            "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+            "App-Token": appToken,
             "Content-Type": "application/json",
             "Session-Token": token,
           },
@@ -334,7 +356,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
         data,
         {
           headers: {
-            "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+            "App-Token": appToken,
             "Content-Type": "application/json",
             "Session-Token": token,
           },
@@ -357,7 +379,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
         data,
         {
           headers: {
-            "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+            "App-Token": appToken,
             "Content-Type": "application/json",
             "Session-Token": token,
           },
@@ -392,7 +414,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
       console.log("object formData", formdata);
       const response = await axios.post(`${storedBaseUrl}/Document`, formdata, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "multipart/form-data",
           "Session-Token": token,
         },
@@ -411,17 +433,39 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.put(`${storedBaseUrl}/Ticket/`, data, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
       });
 
       console.log("Response data cretae:", response.data);
+      Alert.alert("Başarılı", response.data.message);
       return response.data;
     } catch (error) {
       console.log("Fetch failed: updateTickets", error);
-      throw error;
+      let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+
+        if (Array.isArray(error.response.data)) {
+          errorMessage = error.response.data
+            .map((msg) => `• ${msg}`)
+            .join("\n");
+        } else if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.log("No Response Received:", error.request);
+        errorMessage =
+          "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+      } else {
+        console.log("Error Message:", error.message);
+      }
+
+      Alert.alert("Hata", errorMessage);
+      return null
     }
   };
 
@@ -432,7 +476,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${storedBaseUrl}/ITILCategory/`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -451,7 +495,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${storedBaseUrl}/Location/`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -468,7 +512,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
 
       const response = await axios.get(`${storedBaseUrl}/User?range=0-1000`, {
         headers: {
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Content-Type": "application/json",
           "Session-Token": token,
         },
@@ -493,7 +537,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
         data,
         {
           headers: {
-            "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+            "App-Token": appToken,
             "Content-Type": "application/json",
             "Session-Token": admin_token,
           },
@@ -501,6 +545,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
       );
 
       console.log("ne hata var", response.data, "ne hata var");
+      
       return response.data;
     } catch (error) {
       console.log("Fetch failed users:", error);
@@ -540,7 +585,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
       const response = await axios.post(`${storedBaseUrl}/Document`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Session-Token": admin_token,
         },
       });
@@ -602,7 +647,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
       {
         headers: {
           "Content-Type": "multipart/form-data",
-          "App-Token": "OB1OAh01C4YoqZw4gCcK6Un6zum3HssFZQ5G0AoJ",
+          "App-Token": appToken,
           "Session-Token": admin_token,
         },
       }

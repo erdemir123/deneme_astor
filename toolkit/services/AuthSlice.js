@@ -9,6 +9,7 @@ const initialState = {
   user_id: null,
   profile: {},
   group: [],
+  loading: false,
 };
 
 const authSlice = createSlice({
@@ -31,6 +32,7 @@ const authSlice = createSlice({
       state.profile = null;
       state.group = null;
       AsyncStorage.removeItem("userData");
+      AsyncStorage.removeItem("myDevices");
     },
     setStore: (state, action) => {
       const { user, token, user_id, profile, group } = action.payload;
@@ -43,13 +45,16 @@ const authSlice = createSlice({
     setBaseUrl: (state, action) => {
       state.baseUrl = action.payload;
     },
+    setLoading: (state, action) => {
+      state.loading = action.payload;
+    },
     setAllBaseUrl: (state, action) => {
       state.allBaseUrl = action.payload;
     },
   },
 });
 
-export const { setCredentials, logOut, setStore, setBaseUrl, setAllBaseUrl } =
+export const { setCredentials, logOut, setStore, setBaseUrl, setAllBaseUrl,setLoading } =
   authSlice.actions;
 
 export default authSlice.reducer;
@@ -61,3 +66,4 @@ export const selectCurrentToken = (state) => state.auth.token;
 export const selectBaseUrl = (state) => state.auth.baseUrl;
 export const selectAllBaseUrl = (state) => state.auth.allBaseUrl;
 export const selectProfile = (state) => state.auth.profile;
+export const selectLoading = (state) => state.auth.loading;

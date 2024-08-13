@@ -23,8 +23,8 @@ console.log(hasPermission)
   const handleBarCodeScanned = async ({ type, data }) => {
     if (scanned) return; // Eğer zaten tarandıysa, taramayı durdur
     setScanned(true);
-    alert(`Bar code with type ${type} and data ${data} has been scanned!`);
-    //alert(data)
+    // alert(`Bar code with type ${type} and data ${data} has been scanned!`);
+    // alert(data)
     navigation.navigate("CreateSupport", { data: data })
   };
 

@@ -9,6 +9,7 @@ import {
   ScrollView,
   Image,
   Button,
+  ActivityIndicator,
 } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
@@ -39,14 +40,13 @@ const LoginForm = ({
   errors,
   touched,
   handleUrlChange,
+  loginPromise,
 }) => (
   <KeyboardAvoidingView
     behavior={Platform.OS === "ios" ? "padding" : "height"}
     style={{ flex: 1 }}
   >
-    
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      
       <View className="flex-1 justify-center items-center bg-white p-4">
         <View className="text-3xl font-bold mb-4 w-full">
           <Image
@@ -58,7 +58,7 @@ const LoginForm = ({
         onPress={async () => await AsyncStorage.removeItem("baseUrl")}
       >
         <Text>Deneme</Text> */}
-      {/* </TouchableOpacity> */}
+        {/* </TouchableOpacity> */}
         <View className="w-full mb-4 relative">
           <Text className="text-title-small text-default font-semibold mb-1">
             Kullanıcı Adı
@@ -97,6 +97,7 @@ const LoginForm = ({
             onChangeText={handleChange("password")}
             onBlur={handleBlur("password")}
             value={values.password}
+            secureTextEntry={true}
           />
           {errors.password && touched.password && (
             <Text className="text-paradise text-body-small mt-1 ">
@@ -110,11 +111,20 @@ const LoginForm = ({
           )}
         </View>
         <TouchableOpacity
-          className="bg-blue-500 w-full p-3 rounded"
+          disabled={loginPromise}
           onPress={handleSubmit}
+          className={`${loginPromise ? "bg-red-500/10" : "bg-red-700"} w-full p-3 rounded`}
+          
         >
-          <Text className="text-white text-center">Login</Text>
+          {loginPromise ? (
+            <View>
+              <ActivityIndicator size="small" color="red" />
+            </View>
+          ) : (
+            <Text className="text-white font-medium text-title-small text-center">Login</Text>
+          )}
         </TouchableOpacity>
+
         <TouchableOpacity
           className="flex justify-end p-3 rounded"
           onPress={handleUrlChange}
@@ -152,13 +162,13 @@ const SelectBaseUrlForm = ({ handleSubmit, values, setFieldValue }) => {
               setFieldValue("selectValue", itemValue);
             }}
           >
-            {/* {allBaseUrl?.map((item, index) => (
-              <Picker.Item label={item.name} value={item.url} key={index} />
-            ))} */}
-             <Picker.Item label="Seçiniz" value="" />
-            {tempBaseUrl?.map((item, index) => (
+            {allBaseUrl?.map((item, index) => (
               <Picker.Item label={item.name} value={item.url} key={index} />
             ))}
+            {/* <Picker.Item label="Seçiniz" value="" />
+            {tempBaseUrl?.map((item, index) => (
+              <Picker.Item label={item.name} value={item.url} key={index} />
+            ))} */}
           </Picker>
         </View>
         <TouchableOpacity
@@ -173,6 +183,7 @@ const SelectBaseUrlForm = ({ handleSubmit, values, setFieldValue }) => {
 };
 const LoginScreen = ({ navigation }) => {
   const [baseUrl, setBaseUrl] = useState("");
+  const [loginPromise, setLoginPromise] = useState(false);
   const { login, loginUserData } = useAuthCalls();
   const dispatch = useDispatch();
 
@@ -189,22 +200,20 @@ const LoginScreen = ({ navigation }) => {
 
     fetchData();
   }, []);
-
-  console.log("object basUrl ", baseUrl);
-
+  console.log(loginPromise, "loginPromise");
   return (
     <>
-      
       {baseUrl !== null ? (
         <Formik
           initialValues={{ email: "", password: "" }}
           //validationSchema={validationSchema}
           onSubmit={async (values) => {
-            console.log("object data")
+            console.log("object data");
+            const adminName = process.env.EXPO_PUBLIC_ADMIN_NAME;
             const concatenatedString = `${values.email}:${values.password}`;
             const base64Encoded = btoa(concatenatedString);
-            await login(base64Encoded, dispatch);
-            await loginUserData("Z2xwaXN5bmM6QnVsdXQuNDQ3OA==");
+            await login(base64Encoded, dispatch, setLoginPromise);
+            await loginUserData(adminName);
           }}
         >
           {({
@@ -223,6 +232,7 @@ const LoginScreen = ({ navigation }) => {
               errors={errors}
               touched={touched}
               handleUrlChange={handleUrlChange}
+              loginPromise={loginPromise}
             />
           )}
         </Formik>
@@ -251,6 +261,7 @@ const LoginScreen = ({ navigation }) => {
               handleSubmit={handleSubmit}
               values={values}
               setFieldValue={setFieldValue}
+             
             />
           )}
         </Formik>

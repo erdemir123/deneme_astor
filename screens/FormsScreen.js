@@ -1,239 +1,198 @@
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import React, { useEffect, useState } from "react";
+import useFormCalls from "../hooks/useFormCalls";
+import { useSelector } from "react-redux";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-  TextInput,
-  StyleSheet,
-} from "react-native";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { debounce } from "lodash";
-import useTicketCalls from "../hooks/useTicketCalls";
-import { Image } from "react-native";
+  selectCurrentGroup,
+  selectCurrentUser_id,
+  selectProfile,
+} from "../toolkit/services/AuthSlice";
 
-export default function SupportScreen({ navigation }) {
-  const { getAllTickets } = useTicketCalls();
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredTickets, setFilteredTickets] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState(null);
+const FormsScreen = ({ navigation }) => {
+  const [myForms, setMyForms] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [subCategories, setSubCategories] = useState([]);
+  const [loading,setLoading]=useState(false)
 
+  const { getAllFormPermission, getAllForm, getAllFormCategory, getUserForm } =
+    useFormCalls();
+  const group = useSelector(selectCurrentGroup);
+  const user_id = useSelector(selectCurrentUser_id);
+  const profile = useSelector(selectProfile);
+  function sanitizeDescription(description) {
+    // HTML karakterlerini çözme
+    const decodedString = description
+      .replace(/&#60;/g, "<")
+      .replace(/&#62;/g, ">");
+
+    // HTML etiketlerini kaldırma
+    const cleanedString = decodedString.replace(/<\/?[^>]+(>|$)/g, "");
+
+    return cleanedString;
+  }
   useEffect(() => {
-    const fetchTickets = async () => {
-      setLoading(true);
+    const fetchData = async () => {
+      setLoading(true)
       try {
-        const fetchedTickets = await getAllTickets(); // Assuming getAllTickets returns tickets
-        setTickets(fetchedTickets); // Update tickets state with fetched tickets
-        setFilteredTickets(fetchedTickets); // Initialize filteredTickets with all tickets
+        
+        const [user_forms, profile_forms, group_forms] =
+          await getAllFormPermission();
+        const dataAllForm = await getAllForm();
+        const dataAllFormCategory = await getAllFormCategory();
+
+        // Logları ekleyin
+       // console.log("dataAllFormCategory:", dataAllFormCategory);
+
+        const form_id_list = getUserForm(
+          user_id,
+          profile?.id,
+          group,
+          user_forms,
+          profile_forms,
+          group_forms
+        );
+
+       // console.log("form_id_list:", form_id_list);
+
+        const my_forms = [];
+        const my_form_category_id_set = new Set();
+
+        dataAllForm.forEach((form) => {
+          if (form_id_list.includes(form.id)) {
+            my_forms.push(form);
+            my_form_category_id_set.add(
+              form.plugin_formcreator_categories_id.replace(/&#62;/g, ">")
+            );
+          }
+        });
+
+        // Kategori ID'lerini loglama
+        // console.log(my_forms,"my_forms")
+        // console.log(
+        //   "my_form_category_id_set:",
+        //   Array.from(my_form_category_id_set)
+        // );
+       // console.log("dataAllFormCategory", dataAllFormCategory);
+        // Kategorileri filtreleme
+        const filteredCategories = dataAllFormCategory.filter(
+          (category, index) => {
+            return my_form_category_id_set.has(category.completename);
+          }
+        );
+
+        //console.log("filteredCategories:", filteredCategories);
+
+        setMyForms(my_forms);
+        setCategories(filteredCategories);
       } catch (error) {
-        console.error("Error fetching tickets:", error);
-      } finally {
-        setLoading(false);
+        console.error("Veri çekerken hata oluştu:", error);
       }
+      setLoading(false)
     };
-    fetchTickets();
+
+    fetchData();
   }, []);
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    const lowercasedQuery = query.toLowerCase();
-    const filtered = tickets.filter((ticket) => {
-      const matchesName = ticket.name.toLowerCase().includes(lowercasedQuery);
-      const matchesStatus = selectedStatus
-        ? ticket.status.toString() === selectedStatus
-        : true; // If no status selected, match all
-      return matchesName && matchesStatus;
+  // Kategori seçimini işleme
+  const handleCategorySelect = (category) => {
+    //console.log(category?.completename, "item");
+    setSelectedCategory(category?.completename);
+  };
+
+  // HTML karakterlerini düzeltme
+  const replaceHtmlEntities = (str) => {
+    return str.replace(/&#62;/g, ">");
+  };
+  const gotoForm = (item) => {
+    //console.log(item.id,"item=>>>>");
+    navigation.navigate("Form", { itemId: item.id });
+  };
+
+  // Kategorileri organize etme
+  const categorizeData = () => {
+    const categoriesMap = {};
+
+    myForms.forEach((form) => {
+      const categoryName = replaceHtmlEntities(form.name);
+      const categoryId = form.plugin_formcreator_categories_id;
+      if (!categoriesMap[categoryId]) {
+        categoriesMap[categoryId] = { name: categoryName, forms: [] };
+      }
+      categoriesMap[categoryId].forms.push(form);
     });
-    setFilteredTickets(filtered);
+    return categoriesMap;
   };
 
-  const debouncedSearch = useRef(debounce(handleSearch, 200)).current;
-
+  const categorizedForms = categorizeData();
   useEffect(() => {
-    return () => {
-      debouncedSearch.cancel(); // Cleanup on unmount
-    };
-  }, [debouncedSearch]);
-
-  const getUrgencyColor = (urgency) => {
-    switch (urgency) {
-      case 5:
-        return "#FF6347"; // Koyu turuncu/kırmızı
-      case 4:
-        return "#FFA500"; // Turuncu
-      case 3:
-        return "#FFFF00"; // Sarı
-      case 2:
-        return "#9ACD32"; // Açık yeşil
-      case 1:
-        return "#32CD32"; // Yeşil
-      default:
-        return "#d1a890"; // Varsayılan olarak beyaz renk
-    }
-  };
-
-  const status = [
-    { label: "Tümü", value: null },
-    { label: "Yeni", value: "1" },
-    { label: "İşleniyor (atanmış)", value: "2" },
-    { label: "İşleniyor (planlanmış)", value: "3" },
-    { label: "Bekliyor", value: "4" },
-    { label: "Çözülmüş", value: "5" },
-    { label: "Kapalı", value: "6" },
-  ];
-
-  const getItemLayout = (data, index) => ({
-    length: 60,
-    offset: 60 * index,
-    index,
-  });
-
-  const renderItem = React.useCallback(
-    ({ item }) => {
-      const ticketStatus = status.find(
-        (s) => s.value === item.status.toString()
-      );
-      return (
-        <TouchableOpacity
-          className="flex py-4 mt-2 px-2 justify-center items-center"
-          onPress={() =>
-            navigation.navigate("CreateSupport", { itemId: item.id })
-          }
-          style={[
-            styles.item,
-            { backgroundColor: getUrgencyColor(item.status) },
-          ]}
-        >
-          <Text className="text-title-medium font-semibold text-default py-1 text-center">
-            {item.name}
-          </Text>
-          <Text className="text-title-medium font-semibold text-gray-600 ml-2 py-1">
-            {item.date_creation}
-          </Text>
-          <Text className="text-title-medium font-semibold text-gray-600 ml-2 py-1">
-            {ticketStatus ? ticketStatus.label : "Bilinmeyen Durum"}
-          </Text>
-        </TouchableOpacity>
-      );
-    },
-    [navigation, status]
-  );
-
-  const sortedTickets = filteredTickets.sort(
-    (a, b) => new Date(b.date_creation) - new Date(a.date_creation)
-  );
+   //console.log(myForms,"myforms",selectedCategory)
+    const filteredForms = myForms.filter(
+      (form) => form.plugin_formcreator_categories_id.replace(/&#62;/g, ">") === selectedCategory
+    );
+    setSubCategories(filteredForms)
+    //console.log(filteredForms,"forms");
+  }, [selectedCategory]);
 
   if (loading) {
     return (
       <ActivityIndicator
         size={"large"}
         color="red"
-        style={styles.loader}
+        
         animating={true}
-        className="flex-1 "
+        className="flex-1"
       />
     );
   }
 
   return (
-    <View className="relative flex-1">
-      <Image
-        source={require("../assets/images/yapim.jpg")}
-        className="flex-1 w-[100%] items-center"
-      />
-      <Text className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 mt-10 text-red-500 font-semibold text-title-large">
-        Yapım Aşamasında
-      </Text>
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 24, marginBottom: 20 }}>{selectedCategory === null ? "Kategoriler" : "Kategoriler > Formlar"}</Text>
 
-      {/* <TextInput
-        placeholder="Ara..."
-        value={searchQuery}
-        onChangeText={(text) => debouncedSearch(text)}
-        style={styles.searchInput}
-      />
-      <View style={styles.filterContainer}>
-        {status.map((statusItem) => (
-          <TouchableOpacity
-            key={statusItem.value}
-            onPress={() => setSelectedStatus(statusItem.value)}
-            style={[
-              styles.statusButton,
-              selectedStatus === statusItem.value && styles.selectedStatusButton,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusButtonText,
-                selectedStatus === statusItem.value &&
-                  styles.selectedStatusButtonText,
-              ]}
+      {selectedCategory === null ? (
+        <FlatList
+          data={categories}
+          className="mb-12"
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => handleCategorySelect(item)}
+              className="bg-gray-600/20 px-2 py-1 rounded-md mt-2 "
             >
-              {statusItem.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <FlatList
-        data={sortedTickets}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        getItemLayout={getItemLayout}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={21}
-      />
-      <TouchableOpacity
-        className=" w-full h-24 mt-4 p-3  justify-center bg-red-500 items-center sticky bottom-0 left-0"
-        onPress={() => navigation.navigate("CreateSupport")}
-      >
-        <MaterialCommunityIcons name="kabaddi" size={50} color="#FFF" />
-
-        <Text className="text-center font-medium text-title-small text-whitekozy">
-          Yeni Destek kaydı aç
-        </Text>
-      </TouchableOpacity> */}
+              <Text className="font-semibold text-title-medium text-red-500 ">
+                {item.completename}
+              </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      ) : (
+        <FlatList
+          data={subCategories || []}
+          className="mb-12"
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => gotoForm(item)}
+              className="bg-gray-600/20 px-2 py-1 rounded-md mt-2 "
+            >
+              <Text className="font-semibold text-title-medium text-red-500 ">
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      )}
+      {selectedCategory !== null && (
+        <TouchableOpacity
+          onPress={() => setSelectedCategory(null)}
+          style={{ marginTop: 20 }}
+        >
+          <Text style={{ fontSize: 18, color: "blue" }}>Kategori Seç</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  item: {
-    padding: 20,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    borderRadius: 8,
-  },
-  searchInput: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    margin: 10,
-    paddingHorizontal: 8,
-    borderRadius: 5,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-  },
-  statusButton: {
-    padding: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#fff",
-  },
-  selectedStatusButton: {
-    backgroundColor: "#ddd",
-  },
-  statusButtonText: {
-    color: "#000",
-  },
-  selectedStatusButtonText: {
-    color: "#000",
-    fontWeight: "bold",
-  },
-});
+export default FormsScreen;
