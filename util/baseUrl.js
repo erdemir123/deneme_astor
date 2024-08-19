@@ -1,12 +1,18 @@
 export const tempBaseUrl = [
-  { id: 1, url: "https://bakim.astoras.com.tr/apirest.php", name: "bakim" },
   {
-    id: 2,
+    name: "ASTOR BILGI ISLEM",
     url: "https://btdestek.astoras.com.tr/glpi/apirest.php",
-    name: "btDestek",
+    plugin_object: 0,
+    device_table: ["Computer", "Monitor", "Printer"],
   },
-  { id: 3, url: "http://212.253.8.154:23737/apirest.php", name: "bizim" },
+  {
+    name: "ASTOR BAKIM",
+    url: "https://bakim.astoras.com.tr/apirest.php",
+    plugin_object: 1,
+    device_table: [],
+  },
 ];
+
 
 // // // const data = {
 // // //   session: {

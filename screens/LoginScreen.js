@@ -10,6 +10,7 @@ import {
   Image,
   Button,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
@@ -113,15 +114,18 @@ const LoginForm = ({
         <TouchableOpacity
           disabled={loginPromise}
           onPress={handleSubmit}
-          className={`${loginPromise ? "bg-red-500/10" : "bg-red-700"} w-full p-3 rounded`}
-          
+          className={`${
+            loginPromise ? "bg-red-500/10" : "bg-red-700"
+          } w-full p-3 rounded`}
         >
           {loginPromise ? (
             <View>
               <ActivityIndicator size="small" color="red" />
             </View>
           ) : (
-            <Text className="text-white font-medium text-title-small text-center">Login</Text>
+            <Text className="text-white font-medium text-title-small text-center">
+              Login
+            </Text>
           )}
         </TouchableOpacity>
 
@@ -159,16 +163,19 @@ const SelectBaseUrlForm = ({ handleSubmit, values, setFieldValue }) => {
           <Picker
             selectedValue={values.selectValue}
             onValueChange={(itemValue) => {
-              setFieldValue("selectValue", itemValue);
+              const selectedItem = tempBaseUrl.find(
+                (item) => item?.url === itemValue
+              );
+              console.log(selectedItem); // Seçilen tüm nesne burada
+              setFieldValue("selectValue", selectedItem?.url);
+              setFieldValue("plugin_object", selectedItem?.plugin_object);
+              setFieldValue("device_table", selectedItem?.device_table);
             }}
           >
-            {allBaseUrl?.map((item, index) => (
+            <Picker.Item label="Seçiniz" value="" />
+            {tempBaseUrl.map((item, index) => (
               <Picker.Item label={item.name} value={item.url} key={index} />
             ))}
-            {/* <Picker.Item label="Seçiniz" value="" />
-            {tempBaseUrl?.map((item, index) => (
-              <Picker.Item label={item.name} value={item.url} key={index} />
-            ))} */}
           </Picker>
         </View>
         <TouchableOpacity
@@ -200,7 +207,6 @@ const LoginScreen = ({ navigation }) => {
 
     fetchData();
   }, []);
-  console.log(loginPromise, "loginPromise");
   return (
     <>
       {baseUrl !== null ? (
@@ -238,7 +244,11 @@ const LoginScreen = ({ navigation }) => {
         </Formik>
       ) : (
         <Formik
-          initialValues={{ selectValue: "" }}
+          initialValues={{
+            selectValue: "",
+            plugin_object: 0,
+            device_table: [],
+          }}
           onSubmit={async (values) => {
             if (!values.selectValue) {
               alert("Lütfen geçerli bir sunucu seçin.");
@@ -248,7 +258,15 @@ const LoginScreen = ({ navigation }) => {
                   "baseUrl",
                   values.selectValue // Do not stringify here
                 );
-                console.log("Seçilen Değer:", values.selectValue);
+                await AsyncStorage.setItem(
+                  "plugin_object",
+                  JSON.stringify(values.plugin_object) // Stringify here
+                );
+                await AsyncStorage.setItem(
+                  "device_table",
+                  JSON.stringify(values.device_table) // Stringify here
+                );
+                console.log("Seçilen Değer:", values.selectValue, values.device_table, values.plugin_object);
                 setBaseUrl(values.selectValue);
               } catch (error) {
                 console.error("AsyncStorage hatası:", error);
@@ -261,7 +279,6 @@ const LoginScreen = ({ navigation }) => {
               handleSubmit={handleSubmit}
               values={values}
               setFieldValue={setFieldValue}
-             
             />
           )}
         </Formik>

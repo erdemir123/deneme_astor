@@ -35,7 +35,8 @@ export default function HomeScreen({ navigation }) {
     }
     setTimeout(() => setLoadingHome(false), 5000);
   }, []); 
-  console.log(loadingHome,"loadingHome")
+  console.log(profile,"loadingHome")
+
 
   if (loadingHome) {
     return (

@@ -64,7 +64,7 @@ const useFormCalls = () => {
         console.error(response1.data, response2.data, response3.data);
       }
     } catch (error) {
-      console.error("Hata:", error);
+      console.log("Hata 1:", error);
     }
   };
   const getAllForm = async () => {
@@ -91,7 +91,7 @@ const useFormCalls = () => {
         console.error(response.data);
       }
     } catch {
-      console.error("Hata:", error);
+      console.error("Hata 4:", error);
     }
   };
   const getAllFormCategory = async () => {
@@ -118,7 +118,7 @@ const useFormCalls = () => {
         console.error(response.data);
       }
     } catch {
-      console.error("Hata:", error);
+      console.error("Hata 2:", error);
     }
   };
   const getFormSection = async (form_id) => {
@@ -143,7 +143,7 @@ const useFormCalls = () => {
         return null; // veya uygun bir değer döndürün
       }
     } catch (error) {
-      console.error("Hata:", error.message);
+      console.error("Hata 3:", error.message);
       return null; // veya uygun bir değer döndürün
     }
   };
@@ -262,7 +262,7 @@ const useFormCalls = () => {
       let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
 
       if (error.response) {
-        console.log("Error Response Data:", error.response.data);
+        console.log("Error Response Data submitform:", error.response.data);
 
         if (Array.isArray(error.response.data)) {
           errorMessage = error.response.data

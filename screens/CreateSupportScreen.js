@@ -329,7 +329,7 @@ export default function CreateSupportScreen({ route, navigation }) {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true, // Eğer bu özellik desteklenmiyorsa bir alternatif kullanmanız gerekebilir
+        allowsMultipleSelection: true,
         quality: 1,
       });
 
@@ -352,7 +352,7 @@ export default function CreateSupportScreen({ route, navigation }) {
         const myDevice = await AsyncStorage.getItem("myDevices");
         const parsedDevices = JSON.parse(myDevice);
         console.log("parsedDevices==>", parsedDevices);
-    
+
         let parsedData;
         try {
           const jsonString = route.params.data;
@@ -360,23 +360,25 @@ export default function CreateSupportScreen({ route, navigation }) {
           parsedData = JSON.parse(jsonString);
         } catch (error) {
           console.log("JSON parsing error:", error.message);
-          alert("QR kodu veya barkod verisi geçerli bir JSON formatında değil.");
+          alert(
+            "QR kodu veya barkod verisi geçerli bir JSON formatında değil."
+          );
           navigation.navigate("Scanner");
           setLoading(false);
           return;
         }
-    
+
         console.log("parsedData==>", parsedData);
         console.log(
           parsedDevices.map((item) => item.otherserial),
           "myDevices"
         );
-    
+
         const devices_ids = parsedDevices?.filter(
           (item) => item.otherserial == parsedData.toString()
         );
         console.log(parsedData, devices_ids, "ds");
-    
+
         if (devices_ids.length === 0) {
           alert("Bu seri numarasına sahip bir makine bulunamadı.");
           navigation.navigate("Scanner");
@@ -390,14 +392,14 @@ export default function CreateSupportScreen({ route, navigation }) {
           setLoading(false);
           return;
         }
-    
+
         const newDeviceValue = devices_ids[0]?.value;
         console.log("newDeviceValue==>", newDeviceValue);
-    
+
         if (!myDevicesDefault.includes(newDeviceValue)) {
           setMyDevicesDefault([newDeviceValue]);
         }
-    
+
         setFormValues({
           type: "1",
           itilcategories_id: "17",
@@ -409,15 +411,13 @@ export default function CreateSupportScreen({ route, navigation }) {
           content: "",
           document: null,
         });
-    
+
         setLoading(false);
       } else {
-       
         setLoading(false);
       }
     };
     scanner();
-    
   }, [myDevices]);
 
   if (loading) {

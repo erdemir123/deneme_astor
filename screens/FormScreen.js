@@ -32,7 +32,7 @@ const CheckboxesComponent = ({ question, onValueChange }) => {
   const [selectedValues, setSelectedValues] = useState([]);
 
   const handleCheckboxChange = (value) => {
-    //console.log(value); // Seçilen değeri konsola yazdır
+
     const newSelectedValues = selectedValues.includes(value)
       ? selectedValues?.filter((item) => item !== value)
       : [...selectedValues, value];
@@ -54,14 +54,16 @@ const CheckboxesComponent = ({ question, onValueChange }) => {
       >
         <Text className="text-default text-title-large font-semibold mr-4">
           {question?.name}{" "}
-          <View className="flex h-4 justify-start ml-2">
-            <FontAwesome5
-              name="star-of-life"
-              size={8}
-              color="red"
-              style={{ border: "1px solid red" }}
-            />
-          </View>
+          {question.required === 1 && (
+            <View className="flex h-4 justify-start ml-2">
+              <FontAwesome5
+                name="star-of-life"
+                size={8}
+                color="red"
+                style={{ border: "1px solid red" }}
+              />
+            </View>
+          )}
         </Text>
       </View>
       {checkboxOptions.map((option) => (
@@ -99,7 +101,16 @@ const Float = ({ question, onValueChange }) => {
         <Text className="text-default text-title-large font-semibold mr-2">
           {question?.name}
         </Text>
-        <FontAwesome5 name="star-of-life" size={8} color="red" />
+        {question.required === 1 && (
+          <View className="flex h-4 justify-start ml-2">
+            <FontAwesome5
+              name="star-of-life"
+              size={8}
+              color="red"
+              style={{ border: "1px solid red" }}
+            />
+          </View>
+        )}
       </View>
       <TextInput
         value={inputValue}
@@ -143,7 +154,16 @@ const UrgencyDropdown = ({ question, onValueChange, selectedItems }) => {
             <Text className="text-default text-title-large font-semibold">
               {question?.name}
             </Text>
-            <FontAwesome5 name="star-of-life" size={8} color="red" />
+            {question.required === 1 && (
+              <View className="flex h-4 justify-start ml-2">
+                <FontAwesome5
+                  name="star-of-life"
+                  size={8}
+                  color="red"
+                  style={{ border: "1px solid red" }}
+                />
+              </View>
+            )}
           </View>
           <Dropdown
             data={status}
@@ -175,7 +195,7 @@ const GlpiSelectDropdown = ({ question, onValueChange, selectedItems }) => {
     };
     fetchCalls();
   }, []);
-  // console.log(deviceList, "devicelist");
+ 
   return (
     <View>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -189,7 +209,16 @@ const GlpiSelectDropdown = ({ question, onValueChange, selectedItems }) => {
             <Text className="text-default text-title-large font-semibold mr-2">
               {question?.name}
             </Text>
-            <FontAwesome5 name="star-of-life" size={8} color="red" />
+            {question.required === 1 && (
+              <View className="flex h-4 justify-start ml-2">
+                <FontAwesome5
+                  name="star-of-life"
+                  size={8}
+                  color="red"
+                  style={{ border: "1px solid red" }}
+                />
+              </View>
+            )}
           </View>
           <Dropdown
             data={deviceList}
@@ -207,13 +236,7 @@ const GlpiSelectDropdown = ({ question, onValueChange, selectedItems }) => {
   );
 };
 const SelectDropdown = ({ question, onValueChange, selectedItems }) => {
-  console.log(
-    "dropdown",
-    question?.values,
-    question.name,
-    question.id,
-    question.default_values
-  );
+  
   const [dropDownData, setDropdownData] = useState([]);
   useEffect(() => {
     const parseValues = () => {
@@ -223,7 +246,7 @@ const SelectDropdown = ({ question, onValueChange, selectedItems }) => {
         try {
           parsedValues = JSON.parse(parsedValues);
         } catch (error) {
-          console.log("Veriyi parse edemedim:", error);
+          
         }
       }
 
@@ -233,9 +256,7 @@ const SelectDropdown = ({ question, onValueChange, selectedItems }) => {
           value: item,
         }));
         setDropdownData(data);
-      } else {
-        console.log("Veri bir dizi değil:", parsedValues);
-      }
+      } 
     };
 
     parseValues();
@@ -253,7 +274,16 @@ const SelectDropdown = ({ question, onValueChange, selectedItems }) => {
             <Text className="text-default text-title-large font-semibold mr-2">
               {question?.name}
             </Text>
-            <FontAwesome5 name="star-of-life" size={8} color="red" />
+            {question.required === 1 && (
+              <View className="flex h-4 justify-start ml-2">
+                <FontAwesome5
+                  name="star-of-life"
+                  size={8}
+                  color="red"
+                  style={{ border: "1px solid red" }}
+                />
+              </View>
+            )}
           </View>
           <Dropdown
             data={dropDownData}
@@ -271,7 +301,7 @@ const SelectDropdown = ({ question, onValueChange, selectedItems }) => {
   );
 };
 const DropDown = ({ question, onValueChange }) => {
-  console.log("dropdown", question.name, question.id, question.default_values);
+  
   const { useFormGetType } = useFormCalls();
   const [data, setData] = useState([]);
 
@@ -301,7 +331,16 @@ const DropDown = ({ question, onValueChange }) => {
             <Text className="text-default text-title-large font-semibold mr-2">
               {question?.name}
             </Text>
-            <FontAwesome5 name="star-of-life" size={8} color="red" />
+            {question.required === 1 && (
+              <View className="flex h-4 justify-start ml-2">
+                <FontAwesome5
+                  name="star-of-life"
+                  size={8}
+                  color="red"
+                  style={{ border: "1px solid red" }}
+                />
+              </View>
+            )}
           </View>
 
           <Dropdown
@@ -378,7 +417,16 @@ const MultiSelectComponent = ({ question, onValueChange, selectedItems }) => {
         <Text className="text-default text-title-large font-semibold mr-4">
           {question?.name}
         </Text>
-        <FontAwesome5 name="star-of-life" size={8} color="red" />
+        {question.required === 1 && (
+          <View className="flex h-4 justify-start ml-2">
+            <FontAwesome5
+              name="star-of-life"
+              size={8}
+              color="red"
+              style={{ border: "1px solid red" }}
+            />
+          </View>
+        )}
       </View>
       <SectionedMultiSelect
         items={sections}
@@ -434,14 +482,16 @@ const DatePicker = ({ question, onValueChange }) => {
         {selectedDate
           ? moment(selectedDate).format("D - MMMM - YYYY")
           : "Seçilmedi..."}
-        <View className="flex h-4 justify-start ml-2">
-          <FontAwesome5
-            name="star-of-life"
-            size={8}
-            color="red"
-            style={{ border: "1px solid red" }}
-          />
-        </View>
+        {question.required === 1 && (
+          <View className="flex h-4 justify-start ml-2">
+            <FontAwesome5
+              name="star-of-life"
+              size={8}
+              color="red"
+              style={{ border: "1px solid red" }}
+            />
+          </View>
+        )}
       </Text>
       <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
         <Text>Tarih Seç </Text>
@@ -511,19 +561,7 @@ const ActorSelect = ({ question, onValueChange }) => {
         //setCombinedItems([...allUser, ...groupData]);
         setCombinedItems([...allUser]);
 
-        // Default seçili öğeleri ayarlama
-        //     if (question.default_values) {
-        //       const defaultValues = question.default_values
-        //         .replace(/[\[\]"]+/g, "")
-        //         .split(",")
-        //         .map((value) => `user-${value.trim()}`);
-        //       setDefaultSelectedItems(defaultValues);
-        //     }
-        //   } catch (error) {
-        //     console.error("Error fetching data:", error);
-        //   }
-        // };
-        //console.log(question.default_values, "default_values");
+       
         if (question.default_values !== "") {
           const defaultValues = question.default_values
             .replace(/[\[\]"]+/g, "")
@@ -543,14 +581,16 @@ const ActorSelect = ({ question, onValueChange }) => {
     <View>
       <Text className="text-default text-title-large font-semibold">
         {question.name}{" "}
-        <View className="flex h-4 justify-start ml-2">
-          <FontAwesome5
-            name="star-of-life"
-            size={8}
-            color="red"
-            style={{ border: "1px solid red" }}
-          />
-        </View>
+        {question.required === 1 && (
+          <View className="flex h-4 justify-start ml-2">
+            <FontAwesome5
+              name="star-of-life"
+              size={8}
+              color="red"
+              style={{ border: "1px solid red" }}
+            />
+          </View>
+        )}
       </Text>
       <SectionedMultiSelect
         items={combinedItems}
@@ -646,29 +686,10 @@ const FormScreen = ({ route, navigation }) => {
     fetchFormSections();
   }, [route.params?.itemId]);
 
-  // const initializeResponses = (formSections) => {
-  //   const defaultResponses = {};
 
-  //   formSections
-  //     .flatMap((section) => section?.questions)
-  //     .forEach((question) => {
-  //       if (question?.default_values) {
-  //         defaultResponses[question?.id] = question?.default_values;
-  //       }
-  //     });
-
-  //   setResponses(defaultResponses);
-  // };
-
-  // useEffect(() => {
-  //   initializeResponses(formSections);
-  // }, []);
-
-  console.log(responses, "responses");
 
   const handleValueChange = (questionId, value) => {
-    console.log("Question ID:", questionId);
-    console.log("Value:", value);
+    
 
     const allQuestions = formSections.flatMap((section) => section.questions);
 
@@ -763,14 +784,11 @@ const FormScreen = ({ route, navigation }) => {
         (question) => question.show_rule === 1 && question.required === 1
       )
     );
-    console.log(compulsoryQuestionsCount, "compulsoryQuestionsCount");
+    
     setCompulsoryQuestions(compulsoryQuestionsCount);
     setShowQuestion(nonFileShowRuleOneCount);
 
-    console.log(
-      "Fieldtype'ı \"file\" olmayan ve show_rule'ı 1 olan soruların sayısı:",
-      nonFileShowRuleOneCount
-    );
+    
   };
   useEffect(() => {
     const allQuestions = formSections.flatMap((section) => section.questions);
@@ -788,7 +806,7 @@ const FormScreen = ({ route, navigation }) => {
         (question) => question.show_rule === 1 && question.required === 1
       )
     );
-    console.log(compulsoryQuestionsCount, "compulsoryQuestionsCount");
+  
     setCompulsoryQuestions(compulsoryQuestionsCount);
   }, [formSections]); // formSections değişkenini bağımlılık listesine ekleyin.
 
@@ -814,14 +832,16 @@ const FormScreen = ({ route, navigation }) => {
           <View key={question.id} className="flex">
             <Text className="mb-2 text-title-small text-paradise font-medium">
               {sanitizeDescription(question.description)}{" "}
-              <View className="flex h-4 justify-start ml-2">
-                <FontAwesome5
-                  name="star-of-life"
-                  size={8}
-                  color="red"
-                  style={{ border: "1px solid red" }}
-                />
-              </View>
+              {question.required === 1 && (
+                <View className="flex h-4 justify-start ml-2">
+                  <FontAwesome5
+                    name="star-of-life"
+                    size={8}
+                    color="red"
+                    style={{ border: "1px solid red" }}
+                  />
+                </View>
+              )}
             </Text>
             <TextArea
               key={question.id}
@@ -884,14 +904,16 @@ const FormScreen = ({ route, navigation }) => {
                     {question.name}
                   </Text>
                 </View>
-                <View className="flex h-4 justify-start ml-2">
-                  <FontAwesome5
-                    name="star-of-life"
-                    size={8}
-                    color="red"
-                    style={{ border: "1px solid red" }}
-                  />
-                </View>
+                {question.required === 1 && (
+                  <View className="flex h-4 justify-start ml-2">
+                    <FontAwesome5
+                      name="star-of-life"
+                      size={8}
+                      color="red"
+                      style={{ border: "1px solid red" }}
+                    />
+                  </View>
+                )}
               </View>
             </View>
 
@@ -942,9 +964,8 @@ const FormScreen = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
-    console.log("Related Items:", showQuestion);
-    console.log("Related :", responses, "respo");
-    console.log(compulsoryQuestions, "form sections");
+    setLoading(true);
+   
 
     // Zorunlu soruların tümünün cevaplanıp cevaplanmadığını kontrol et
     const missingCompulsoryQuestions = compulsoryQuestions.filter(
@@ -957,10 +978,11 @@ const FormScreen = ({ route, navigation }) => {
         );
       }
     );
-    console.log(missingCompulsoryQuestions, "missingCompulsoryQuestions");
+    
     if (missingCompulsoryQuestions.length > 0) {
       // Zorunlu sorulardan herhangi biri boş bırakılmışsa hata ver
       Alert.alert("Hata", "Zorunlu olan soruların cevapları eksik!");
+      setLoading(false)
       return;
     }
 
@@ -980,40 +1002,12 @@ const FormScreen = ({ route, navigation }) => {
       },
     };
 
-    console.log(finalyData, "updatedData");
-       const submitFinaly = await submitForm(finalyData);
-      console.log(submitFinaly, "Son istek");
-
-    // Form verisini gönderme işlemi
-    // try {
-    //   const submitFinaly = await submitForm(finalyData);
-    //   console.log(submitFinaly, "Son istek");
-    //   Alert.alert("Başarılı", "Form başarıyla kaydedildi!");
-    //   setTimeout(() => {
-    //     navigation.navigate("Home"); // Home sayfasına yönlendirme
-    //   }, 2000);
-    // } catch (error) {
-    //   console.error("Form gönderimi sırasında bir hata oluştu:", error);
   
-    //   // Error.response ve Error.response.data kontrolü
-    //   const errorMessage = error?.response?.data;
-  
-    //   if (Array.isArray(errorMessage)) {
-    //     // Hata mesajları dizisi varsa
-    //     const formattedErrorMessages = errorMessage
-    //       .map((msg) => `• ${msg}`)
-    //       .join("\n");
-    //     Alert.alert("Hata", formattedErrorMessages);
-    //   } else if (typeof errorMessage === "string") {
-    //     // Tek bir string hata mesajı varsa
-    //     Alert.alert("Hata", errorMessage);
-    //   } else {
-    //     // Beklenmedik hata durumları için
-    //     Alert.alert("Hata", "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.");
-    //   }
-    }
-  ;
+    const submitFinaly = await submitForm(finalyData);
+    
 
+    setLoading(false);
+  };
   if (loading) {
     return (
       <ActivityIndicator
@@ -1043,8 +1037,6 @@ const FormScreen = ({ route, navigation }) => {
                   {section.name}
                 </Text>
                 {section.questions.map((question, index) => {
-                  // Soru içeriği veya `show_rule` değerinin boş olup olmadığını kontrol et
-                  //console.log("object ", index, question);
                   if (
                     !question ||
                     question.show_rule === 2 ||

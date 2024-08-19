@@ -60,7 +60,7 @@ const NewFormScreen = ({ route, navigation }) => {
         }
       } catch (error) {
         console.log("Error fetching form data:", error);
-        Alert.alert("Hata", "Form verileri alınırken bir hata oluştu.");
+        Alert.alert("Hata5", "Form verileri alınırken bir hata oluştu.");
       }
     };
 

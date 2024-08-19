@@ -36,7 +36,7 @@ const ChangeProfile = () => {
           name: data.active_profile.name,
           id: data.active_profile.id,
         };
-        
+
         setSelectedProfile(profile);
       } catch (error) {
         console.log("Error fetching active profile:", error);
@@ -61,7 +61,6 @@ const ChangeProfile = () => {
         id: profile.id,
         name: profile.name,
       };
-     
 
       await AsyncStorage.setItem("userData", JSON.stringify(userData));
       navigation.navigate("Home");
@@ -74,21 +73,26 @@ const ChangeProfile = () => {
       <Text className={"text-lg font-bold mb-4 text-default"}>
         Select a Profile:
       </Text>
-      {myProfiles.map((profile) => (
-        <TouchableOpacity
-          key={profile.id}
-          className={`p-8 m-2 border border-gray-300 rounded-md ${
-            selectedProfile && selectedProfile.id === profile.id
-              ? "bg-red-500 "
-              : "bg-gray-300"
-          }`}
-          onPress={() => handleProfileSelect(profile)}
-        >
-          <Text className={"text-lg font-bold text-center text-whitekozy"}>
-            {profile.name}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {myProfiles
+        .filter(
+          (profile) =>
+            profile.name === "Self-Service" || profile.name === "Technician"
+        )
+        .map((profile) => (
+          <TouchableOpacity
+            key={profile.id}
+            className={`p-8 m-2 border border-gray-300 rounded-md ${
+              selectedProfile && selectedProfile.id === profile.id
+                ? "bg-red-500"
+                : "bg-gray-300"
+            }`}
+            onPress={() => handleProfileSelect(profile)}
+          >
+            <Text className={"text-lg font-bold text-center text-white"}>
+              {profile.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
     </View>
   );
 };

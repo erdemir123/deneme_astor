@@ -221,6 +221,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
     }
   };
   const getTicketInfo = async (href) => {
+    console.log(href,"hreffff")
     try {
       const admin_token = await loginAdminToken();
       //console.log(admin_token,"admin_token")
@@ -236,10 +237,10 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
         },
       });
 
-      //console.log("Response data: byId ınfo", response.data, href);
+      console.log("Response data: byId ınfo", response.data, href);
       return response.data;
     } catch (error) {
-      console.log("Fetch failed: getTicketInfo", error);
+      console.log("Fetch failed: getTicketInfo", error.response.data);
     }
   };
   const getTicketInfoUser = async (href) => {
@@ -284,7 +285,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
       let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
 
       if (error.response) {
-        console.log("Error Response Data:", error.response.data);
+        console.log("Error Response Data createtickets:", error.response.data);
 
         if (Array.isArray(error.response.data)) {
           errorMessage = error.response.data
@@ -447,7 +448,7 @@ console.log(data,ticket_id,`${storedBaseUrl}/Ticket/${ticket_id}/Ticket_User`)
       let errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
 
       if (error.response) {
-        console.log("Error Response Data:", error.response.data);
+        console.log("Error Response Data updatetickets:", error.response.data);
 
         if (Array.isArray(error.response.data)) {
           errorMessage = error.response.data

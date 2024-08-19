@@ -1,4 +1,10 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import React, { useEffect, useState } from "react";
 import useFormCalls from "../hooks/useFormCalls";
 import { useSelector } from "react-redux";
@@ -13,7 +19,7 @@ const FormsScreen = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [subCategories, setSubCategories] = useState([]);
-  const [loading,setLoading]=useState(false)
+  const [loading, setLoading] = useState(false);
 
   const { getAllFormPermission, getAllForm, getAllFormCategory, getUserForm } =
     useFormCalls();
@@ -33,16 +39,15 @@ const FormsScreen = ({ navigation }) => {
   }
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        
         const [user_forms, profile_forms, group_forms] =
           await getAllFormPermission();
         const dataAllForm = await getAllForm();
         const dataAllFormCategory = await getAllFormCategory();
 
         // Logları ekleyin
-       // console.log("dataAllFormCategory:", dataAllFormCategory);
+        // console.log("dataAllFormCategory:", dataAllFormCategory);
 
         const form_id_list = getUserForm(
           user_id,
@@ -53,7 +58,7 @@ const FormsScreen = ({ navigation }) => {
           group_forms
         );
 
-       // console.log("form_id_list:", form_id_list);
+        // console.log("form_id_list:", form_id_list);
 
         const my_forms = [];
         const my_form_category_id_set = new Set();
@@ -73,7 +78,7 @@ const FormsScreen = ({ navigation }) => {
         //   "my_form_category_id_set:",
         //   Array.from(my_form_category_id_set)
         // );
-       // console.log("dataAllFormCategory", dataAllFormCategory);
+        // console.log("dataAllFormCategory", dataAllFormCategory);
         // Kategorileri filtreleme
         const filteredCategories = dataAllFormCategory.filter(
           (category, index) => {
@@ -86,9 +91,9 @@ const FormsScreen = ({ navigation }) => {
         setMyForms(my_forms);
         setCategories(filteredCategories);
       } catch (error) {
-        console.error("Veri çekerken hata oluştu:", error);
+        alert("Form Bulunamadı...");
       }
-      setLoading(false)
+      setLoading(false);
     };
 
     fetchData();
@@ -126,11 +131,13 @@ const FormsScreen = ({ navigation }) => {
 
   const categorizedForms = categorizeData();
   useEffect(() => {
-   //console.log(myForms,"myforms",selectedCategory)
+    //console.log(myForms,"myforms",selectedCategory)
     const filteredForms = myForms.filter(
-      (form) => form.plugin_formcreator_categories_id.replace(/&#62;/g, ">") === selectedCategory
+      (form) =>
+        form.plugin_formcreator_categories_id.replace(/&#62;/g, ">") ===
+        selectedCategory
     );
-    setSubCategories(filteredForms)
+    setSubCategories(filteredForms);
     //console.log(filteredForms,"forms");
   }, [selectedCategory]);
 
@@ -139,7 +146,6 @@ const FormsScreen = ({ navigation }) => {
       <ActivityIndicator
         size={"large"}
         color="red"
-        
         animating={true}
         className="flex-1"
       />
@@ -148,24 +154,34 @@ const FormsScreen = ({ navigation }) => {
 
   return (
     <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 24, marginBottom: 20 }}>{selectedCategory === null ? "Kategoriler" : "Kategoriler > Formlar"}</Text>
+      <Text style={{ fontSize: 24, marginBottom: 20 }}>
+        {selectedCategory === null ? "Kategoriler" : "Kategoriler > Formlar"}
+      </Text>
 
       {selectedCategory === null ? (
-        <FlatList
-          data={categories}
-          className="mb-12"
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => handleCategorySelect(item)}
-              className="bg-gray-600/20 px-2 py-1 rounded-md mt-2 "
-            >
-              <Text className="font-semibold text-title-medium text-red-500 ">
-                {item.completename}
-              </Text>
-            </TouchableOpacity>
+        <>
+          {categories && categories.length > 0 ? (
+            <FlatList
+              data={categories}
+              className="mb-12"
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => handleCategorySelect(item)}
+                  className="bg-gray-600/20 px-2 py-1 rounded-md mt-2"
+                >
+                  <Text className="font-semibold text-title-medium text-red-500">
+                    {item.completename}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.id.toString()}
+            />
+          ) : (
+            <Text className="font-semibold text-title-medium text-gray-500">
+             Atanmış Form Bulunamadı...
+            </Text>
           )}
-          keyExtractor={(item) => item.id.toString()}
-        />
+        </>
       ) : (
         <FlatList
           data={subCategories || []}
