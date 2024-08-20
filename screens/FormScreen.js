@@ -964,7 +964,7 @@ const FormScreen = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
-    setLoading(true);
+  
    
 
     // Zorunlu soruların tümünün cevaplanıp cevaplanmadığını kontrol et
@@ -1004,9 +1004,7 @@ const FormScreen = ({ route, navigation }) => {
 
   
     const submitFinaly = await submitForm(finalyData);
-    
 
-    setLoading(false);
   };
   if (loading) {
     return (

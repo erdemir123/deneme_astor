@@ -176,12 +176,12 @@ export default function SupportScreen({ navigation }) {
 
   return (
     <View className="relative flex-1">
-      <ScrollView horizontal className="flex flex-row gap-2 mt-2 mx-1 pb-8  w-full" >
+      <View horizontal className="flex flex-row gap-2 mt-2 mx-1 pb-8  w-full" >
         <TextInput
           placeholder="Ara..."
           value={searchQuery}
           onChangeText={(text) => setSearchQuery(text)}
-          className="w-[40%] border ml-4 h-8 my-2 pl-2 rounded-md mb-2"
+          className="w-[30%] border ml-4 h-8 my-2 pl-2 rounded-md mb-2"
         />
         <TouchableOpacity
           className={`h-8 flex justify-center items-center px-2 rounded-md ${
@@ -207,7 +207,7 @@ export default function SupportScreen({ navigation }) {
         >
           <Text className="text-white font-medium">Çözümlenmiş</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
       <FlatList
         data={sortedTickets}
         renderItem={renderItem}
